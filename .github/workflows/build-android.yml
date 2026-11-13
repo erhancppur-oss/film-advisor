@@ -1,0 +1,103 @@
+name: Build Android (APK + AAB)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      PRIVACY_URL: ${{ vars.PRIVACY_URL }}
+      CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+      APP_ID: ${{ vars.APP_ID || 'com.filmadvisor.app' }}
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Check TMDB key
+        run: |
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "::error::Repository secret TMDB_API_KEY is not set (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          if [ -z "$PRIVACY_URL" ]; then
+            echo "::warning::Repository variable PRIVACY_URL is empty - the in-app privacy policy link will be hidden. Google Play requires a privacy policy URL."
+          fi
+
+      - name: Prepare Android project (targetSdk 36, signing, permissions)
+        run: python3 tool/prepare_android.py --app-id "$APP_ID"
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Launcher icons
+        run: dart run flutter_launcher_icons || echo "::warning::Icon generation failed, default icon used"
+
+      - name: Analyze & test
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Release signing
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          {
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyPassword=$KEY_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "storeFile=upload-keystore.jks"
+          } > android/key.properties
+
+      - name: Warn if unsigned
+        if: env.KEYSTORE_BASE64 == ''
+        run: echo "::warning::No upload keystore secrets -> builds are signed with the DEBUG key. Fine for testing, NOT accepted by Google Play."
+
+      - name: Build APK
+        run: >
+          flutter build apk --release
+          --build-number=${{ github.run_number }}
+          --dart-define=TMDB_API_KEY="$TMDB_API_KEY"
+          --dart-define=PRIVACY_URL="$PRIVACY_URL"
+          --dart-define=CONTACT_EMAIL="$CONTACT_EMAIL"
+
+      - name: Build App Bundle (for Google Play)
+        run: >
+          flutter build appbundle --release
+          --build-number=${{ github.run_number }}
+          --dart-define=TMDB_API_KEY="$TMDB_API_KEY"
+          --dart-define=PRIVACY_URL="$PRIVACY_URL"
+          --dart-define=CONTACT_EMAIL="$CONTACT_EMAIL"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: film-advisor-${{ github.run_number }}
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Clean secrets
+        if: always()
+        run: rm -f android/key.properties android/app/upload-keystore.jks
