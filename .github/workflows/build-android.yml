@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -90,13 +93,24 @@ jobs:
           --dart-define=PRIVACY_URL="$PRIVACY_URL"
           --dart-define=CONTACT_EMAIL="$CONTACT_EMAIL"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: film-advisor-${{ github.run_number }}
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
+
+      - name: Publish APK to GitHub Releases (for easy install on phone)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Film Advisor build ${{ github.run_number }}
+          prerelease: true
+          body: |
+            Test APK (install on Android: download -> open -> allow "install unknown apps").
+            For Google Play upload use the .aab from the Actions artifacts (signed with your upload key).
+          files: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Clean secrets
         if: always()
