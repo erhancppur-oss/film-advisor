@@ -18,6 +18,7 @@ class ResultsScreen extends StatefulWidget {
     this.isRelaxed,
     this.showHint = false,
     this.onChangeCriteria,
+    this.banner,
   });
 
   final String title;
@@ -25,6 +26,7 @@ class ResultsScreen extends StatefulWidget {
   final bool Function()? isRelaxed;
   final bool showHint;
   final VoidCallback? onChangeCriteria;
+  final String? banner;
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
@@ -155,6 +157,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     }
 
     final banners = <Widget>[
+      if (widget.banner != null && _items.isNotEmpty)
+        _Banner(icon: Icons.auto_awesome_rounded, text: widget.banner!),
       if (relaxed && _items.isNotEmpty)
         _Banner(icon: Icons.info_outline_rounded, text: s.t('results_relaxed')),
       if (widget.showHint && !_hintShown && _cardView && _items.isNotEmpty)

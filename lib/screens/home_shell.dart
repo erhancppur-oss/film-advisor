@@ -7,7 +7,7 @@ import 'advisor_screen.dart';
 import 'discover_screen.dart';
 import 'library_screen.dart';
 import 'search_screen.dart';
-import 'settings_screen.dart';
+import 'trends_screen.dart';
 
 class HomeShell extends StatelessWidget {
   const HomeShell({super.key});
@@ -22,10 +22,10 @@ class HomeShell extends StatelessWidget {
         index: index,
         children: const [
           DiscoverScreen(),
+          TrendsScreen(),
           AdvisorScreen(),
           SearchScreen(),
           LibraryScreen(),
-          SettingsScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -37,6 +37,11 @@ class HomeShell extends StatelessWidget {
             icon: const Icon(Icons.explore_outlined),
             selectedIcon: const Icon(Icons.explore_rounded),
             label: s.t('nav_discover'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.local_fire_department_outlined),
+            selectedIcon: const Icon(Icons.local_fire_department_rounded),
+            label: s.t('nav_trends'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.auto_awesome_outlined),
@@ -51,11 +56,6 @@ class HomeShell extends StatelessWidget {
             icon: const Icon(Icons.bookmarks_outlined),
             selectedIcon: const Icon(Icons.bookmarks_rounded),
             label: s.t('nav_library'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings_rounded),
-            label: s.t('nav_settings'),
           ),
         ],
       ),

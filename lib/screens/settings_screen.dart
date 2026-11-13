@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../l10n/strings.dart';
 import '../services/tmdb_api.dart';
+import '../state/advisor_prefs.dart';
 import '../state/library_state.dart';
 import '../state/settings_state.dart';
 import 'detail_screen.dart' show openUrl;
@@ -17,16 +19,8 @@ class SettingsScreen extends StatelessWidget {
     final st = context.watch<SettingsState>();
     final currentRegion = context.read<TmdbApi>().region;
 
-    String langLabel() {
-      switch (st.languageCode) {
-        case 'tr':
-          return 'Türkçe';
-        case 'en':
-          return 'English';
-        default:
-          return s.t('set_lang_system');
-      }
-    }
+    final lang = kAppLanguages.firstWhere((l) => l.code == st.languageCode,
+        orElse: () => kAppLanguages.first);
 
     String themeLabel() {
       switch (st.themeMode) {
@@ -43,14 +37,14 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: Text(s.t('settings'))),
       body: ListView(children: [
         ListTile(
-          leading: const Icon(Icons.language_rounded),
+          leading: Text(lang.flag, style: const TextStyle(fontSize: 22)),
           title: Text(s.t('set_language')),
-          subtitle: Text(langLabel()),
-          onTap: () => _pick<String?>(
+          subtitle: Text(lang.nativeName),
+          onTap: () => _pick<String>(
             context,
             title: s.t('set_language'),
             current: st.languageCode,
-            options: {null: s.t('set_lang_system'), 'tr': 'Türkçe', 'en': 'English'},
+            options: {for (final l in kAppLanguages) l.code: '${l.flag}  ${l.nativeName}'},
             onSelected: st.setLanguage,
           ),
         ),
@@ -85,6 +79,8 @@ class SettingsScreen extends StatelessWidget {
             onSelected: st.setRegion,
           ),
         ),
+        const Divider(),
+        const _RememberedPrefs(),
         const Divider(),
         ListTile(
           leading: const Icon(Icons.delete_sweep_outlined),
@@ -135,10 +131,7 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Center(
-          child: Text(s.t('version', {'v': AppConfig.appVersion}),
-              style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 12)),
-        ),
+        const Center(child: _VersionText(small: true)),
         const SizedBox(height: 24),
       ]),
     );
@@ -184,6 +177,66 @@ class _Choice<T> {
   const _Choice(this.value);
 }
 
+class _VersionText extends StatelessWidget {
+  const _VersionText({this.small = false});
+  final bool small;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snap) {
+        final v = snap.data?.version ?? AppConfig.appVersion;
+        final b = snap.data?.buildNumber ?? '';
+        return Text(
+          b.isEmpty ? s.t('version', {'v': v}) : s.t('version_build', {'v': v, 'b': b}),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.outline,
+            fontSize: small ? 12 : 14,
+            fontWeight: small ? FontWeight.normal : FontWeight.w600,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Remembered answers of the manual advisor; deletable one by one.
+class _RememberedPrefs extends StatelessWidget {
+  const _RememberedPrefs();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final prefs = context.watch<AdvisorPrefs>();
+    final steps = prefs.savedSteps;
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      ListTile(
+        leading: const Icon(Icons.bookmark_added_outlined),
+        title: Text(s.t('set_advisor_prefs')),
+        subtitle: steps.isEmpty ? Text(s.t('no_saved_prefs')) : null,
+        trailing: steps.isEmpty
+            ? null
+            : TextButton(onPressed: prefs.clear, child: Text(s.t('delete_all'))),
+      ),
+      for (final st in steps)
+        ListTile(
+          dense: true,
+          contentPadding: const EdgeInsets.only(left: 56, right: 8),
+          title: Text(s.t(stepQuestionKey(st)), style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(prefs.summary(st, s), maxLines: 2, overflow: TextOverflow.ellipsis),
+          trailing: IconButton(
+            tooltip: s.t('remove'),
+            icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+            onPressed: () => prefs.remove(st),
+          ),
+        ),
+    ]);
+  }
+}
+
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -191,80 +244,97 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final cs = Theme.of(context).colorScheme;
+    final small = TextStyle(fontSize: 12, color: cs.outline, height: 1.4);
     return Scaffold(
       appBar: AppBar(title: Text(s.t('about'))),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
-        Row(children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.asset('assets/icon/icon.png',
-                width: 64,
-                height: 64,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.movie_filter_rounded, size: 64)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(AppConfig.appName,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              Text(s.t('version', {'v': AppConfig.appVersion}), style: TextStyle(color: cs.outline)),
-            ]),
-          ),
-        ]),
-        const SizedBox(height: 20),
-        Text(s.t('about_body'), style: const TextStyle(height: 1.45)),
-        const SizedBox(height: 28),
-        // ---- TMDB attribution (required by TMDB API terms)
+      body: ListView(padding: const EdgeInsets.fromLTRB(20, 12, 20, 24), children: [
         Center(
-          child: Image.asset(
-            'assets/tmdb_logo.png',
-            height: 40,
-            errorBuilder: (_, __, ___) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D253F),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text('TMDB',
-                  style: TextStyle(
-                      color: Color(0xFF01B4E4), fontWeight: FontWeight.w900, fontSize: 22)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset('assets/icon/icon.png',
+                width: 96,
+                height: 96,
+                errorBuilder: (_, __, ___) => const Icon(Icons.movie_filter_rounded, size: 96)),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(AppConfig.appName,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        const Center(child: _VersionText()),
+        const SizedBox(height: 22),
+        // ---- developer credit (large)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xFF7C5CFF), Color(0xFFFF5CA8)]),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Text(
+            s.t('developed_by', {'dev': AppConfig.developer}),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              height: 1.25,
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(s.t('tmdb_notice'),
-            textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Text(s.t('tmdb_data'), textAlign: TextAlign.center, style: TextStyle(color: cs.outline)),
+        const SizedBox(height: 22),
+        Text(s.t('about_body'), textAlign: TextAlign.center, style: small),
+        const SizedBox(height: 18),
+        // ---- TMDB attribution (required by TMDB API terms) – small
         Center(
-          child: TextButton(
+          child: Image.asset(
+            'assets/tmdb_logo.png',
+            height: 22,
+            errorBuilder: (_, __, ___) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D253F),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('TMDB',
+                  style: TextStyle(
+                      color: Color(0xFF01B4E4), fontWeight: FontWeight.w900, fontSize: 13)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(s.t('tmdb_notice'), textAlign: TextAlign.center, style: small),
+        Text(s.t('tmdb_data'), textAlign: TextAlign.center, style: small),
+        Text(s.t('justwatch_notice'), textAlign: TextAlign.center, style: small),
+        const SizedBox(height: 4),
+        Wrap(alignment: WrapAlignment.center, children: [
+          TextButton(
             onPressed: () => openUrl(context, 'https://www.themoviedb.org/'),
-            child: const Text('www.themoviedb.org'),
+            child: const Text('themoviedb.org', style: TextStyle(fontSize: 12)),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(s.t('justwatch_notice'), textAlign: TextAlign.center, style: TextStyle(color: cs.outline)),
-        Center(
-          child: TextButton(
+          TextButton(
             onPressed: () => openUrl(context, 'https://www.justwatch.com/'),
-            child: const Text('www.justwatch.com'),
+            child: const Text('justwatch.com', style: TextStyle(fontSize: 12)),
           ),
-        ),
-        const SizedBox(height: 16),
+        ]),
         if (AppConfig.contactEmail.isNotEmpty)
           ListTile(
-            leading: const Icon(Icons.mail_outline_rounded),
-            title: Text(s.t('contact')),
-            subtitle: Text(AppConfig.contactEmail),
+            dense: true,
+            leading: const Icon(Icons.mail_outline_rounded, size: 20),
+            title: Text(s.t('contact'), style: const TextStyle(fontSize: 13)),
+            subtitle: Text(AppConfig.contactEmail, style: const TextStyle(fontSize: 12)),
             onTap: () => openUrl(context, 'mailto:${AppConfig.contactEmail}'),
           ),
         if (AppConfig.hasPrivacyUrl)
           ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined),
-            title: Text(s.t('privacy')),
+            dense: true,
+            leading: const Icon(Icons.privacy_tip_outlined, size: 20),
+            title: Text(s.t('privacy'), style: const TextStyle(fontSize: 13)),
             onTap: () => openUrl(context, AppConfig.privacyPolicyUrl),
           ),
+        const SizedBox(height: 8),
+        Text('© ${DateTime.now().year} ${AppConfig.developer}',
+            textAlign: TextAlign.center, style: small),
       ]),
     );
   }

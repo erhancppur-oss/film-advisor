@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config.dart';
+import 'l10n/strings.dart';
 import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/tmdb_api.dart';
+import 'state/advisor_prefs.dart';
 import 'state/library_state.dart';
 import 'state/settings_state.dart';
 
@@ -19,6 +21,7 @@ Future<void> main() async {
         Provider<TmdbApi>(create: (_) => TmdbApi()),
         ChangeNotifierProvider<SettingsState>(create: (_) => SettingsState(prefs)),
         ChangeNotifierProvider<LibraryState>(create: (_) => LibraryState(prefs)),
+        ChangeNotifierProvider<AdvisorPrefs>(create: (_) => AdvisorPrefs(prefs)),
       ],
       child: const FilmAdvisorApp(),
     ),
@@ -54,7 +57,7 @@ class FilmAdvisorApp extends StatelessWidget {
       darkTheme: _theme(Brightness.dark),
       themeMode: st.themeMode,
       locale: st.locale,
-      supportedLocales: const [Locale('en'), Locale('tr')],
+      supportedLocales: [for (final l in kAppLanguages) Locale(l.code)],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -73,7 +76,7 @@ class _Root extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final st = context.watch<SettingsState>();
-    final lang = Localizations.localeOf(context).languageCode == 'tr' ? 'tr' : 'en';
+    final lang = S.of(context).lang;
     final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
     final region = st.regionFor(deviceLocale);
     context.read<TmdbApi>().configure(languageCode: lang, region: region);

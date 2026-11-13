@@ -10,7 +10,9 @@ import '../state/library_state.dart';
 import '../widgets/common.dart';
 import '../widgets/hero_carousel.dart';
 import '../widgets/media_row.dart';
+import '../widgets/language_button.dart';
 import 'results_screen.dart';
+import 'settings_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -23,12 +25,9 @@ class DiscoverScreen extends StatelessWidget {
       child: Builder(builder: (context) {
         return Scaffold(
           appBar: AppBar(
-            title: Row(children: [
-              const Icon(Icons.movie_filter_rounded),
-              const SizedBox(width: 8),
-              Text('Film Advisor', style: const TextStyle(fontWeight: FontWeight.w800)),
-            ]),
+            title: const Text('Film Advisor', style: TextStyle(fontWeight: FontWeight.w800)),
             actions: [
+              const LanguageButton(),
               IconButton(
                 tooltip: s.t('quick_swipe'),
                 icon: const Icon(Icons.swipe_rounded),
@@ -38,6 +37,12 @@ class DiscoverScreen extends StatelessWidget {
                 tooltip: s.t('surprise_me'),
                 icon: const Icon(Icons.casino_rounded),
                 onPressed: () => _surprise(context),
+              ),
+              IconButton(
+                tooltip: s.t('settings'),
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
               ),
             ],
             bottom: TabBar(tabs: [Tab(text: s.t('movies')), Tab(text: s.t('series'))]),

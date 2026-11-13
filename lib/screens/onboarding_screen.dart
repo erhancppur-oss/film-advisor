@@ -12,32 +12,29 @@ class OnboardingScreen extends StatelessWidget {
     final s = S.of(context);
     final st = context.watch<SettingsState>();
     final cs = Theme.of(context).colorScheme;
-    final current = Localizations.localeOf(context).languageCode;
+    final current = st.languageCode;
 
-    Widget langButton(String code, String label, String flag) {
-      final selected = current == code;
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: Material(
-            color: selected ? cs.primaryContainer : cs.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
+    Widget langButton(AppLanguage l) {
+      final selected = current == l.code;
+      return Material(
+        color: selected ? cs.primaryContainer : cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => st.setLanguage(l.code),
+          child: Container(
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              onTap: () => st.setLanguage(code),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: selected ? cs.primary : Colors.transparent, width: 2),
-                ),
-                child: Column(children: [
-                  Text(flag, style: const TextStyle(fontSize: 28)),
-                  const SizedBox(height: 6),
-                  Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-                ]),
-              ),
+              border: Border.all(color: selected ? cs.primary : Colors.transparent, width: 2),
             ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text(l.flag, style: const TextStyle(fontSize: 26)),
+              const SizedBox(height: 4),
+              Text(l.nativeName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+            ]),
           ),
         ),
       );
@@ -47,8 +44,8 @@ class OnboardingScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Spacer(),
+          child: ListView(children: [
+            const SizedBox(height: 24),
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
@@ -73,21 +70,23 @@ class OnboardingScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text(s.t('onb_body'),
                 textAlign: TextAlign.center, style: const TextStyle(height: 1.45)),
-            const Spacer(),
+            const SizedBox(height: 36),
             Text(s.t('onb_choose_lang'),
                 textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
-            Row(children: [
-              langButton('tr', 'Türkçe', '🇹🇷'),
-              langButton('en', 'English', '🇬🇧'),
-            ]),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.5,
+              children: [for (final l in kAppLanguages) langButton(l)],
+            ),
             const SizedBox(height: 24),
             FilledButton(
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-              onPressed: () {
-                if (st.languageCode == null) st.setLanguage(current == 'tr' ? 'tr' : 'en');
-                st.completeOnboarding();
-              },
+              onPressed: () => st.setLanguage(current).then((_) => st.completeOnboarding()),
               child: Text(s.t('onb_start'), style: const TextStyle(fontSize: 16)),
             ),
           ]),

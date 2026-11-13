@@ -30,8 +30,9 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? get languageCode => _languageCode;
-  Locale? get locale => _languageCode == null ? null : Locale(_languageCode!);
+  /// App language; English unless the user picked another one.
+  String get languageCode => _languageCode ?? 'en';
+  Locale get locale => Locale(languageCode);
   ThemeMode get themeMode => _themeMode;
   bool get onboarded => _onboarded;
 
@@ -45,13 +46,9 @@ class SettingsState extends ChangeNotifier {
 
   String? get explicitRegion => _region;
 
-  Future<void> setLanguage(String? code) async {
+  Future<void> setLanguage(String code) async {
     _languageCode = code;
-    if (code == null) {
-      await _prefs.remove('language');
-    } else {
-      await _prefs.setString('language', code);
-    }
+    await _prefs.setString('language', code);
     notifyListeners();
   }
 

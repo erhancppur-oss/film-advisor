@@ -39,8 +39,17 @@ class TmdbApi {
   /// ISO 3166-1 country used for theatres & streaming providers.
   String region = 'TR';
 
+  static const Map<String, String> _tmdbLang = {
+    'en': 'en-US',
+    'tr': 'tr-TR',
+    'de': 'de-DE',
+    'fr': 'fr-FR',
+    'es': 'es-ES',
+    'ar': 'ar-SA',
+  };
+
   void configure({required String languageCode, required String region}) {
-    final newLang = languageCode == 'tr' ? 'tr-TR' : 'en-US';
+    final newLang = _tmdbLang[languageCode] ?? 'en-US';
     if (newLang != language || region != this.region) {
       language = newLang;
       this.region = region;
@@ -169,6 +178,90 @@ class TmdbApi {
       }
     }
     return detail;
+  }
+
+  Future<PagedResult> similar(MediaType type, int id, {int page = 1}) async {
+    final j = await _get('/${_t(type)}/$id/similar', {'page': '$page'});
+    return PagedResult.fromJson(j, forcedType: type);
+  }
+
+  /// Fetch several pages in parallel and return up to [limit] unique items.
+  Future<List<MediaItem>> collect(Future<PagedResult> Function(int page) loader, int limit) async {
+    final pages = ((limit + 19) ~/ 20).clamp(1, 10);
+    final results = await Future.wait(List.generate(pages, (i) => loader(i + 1)));
+    final seen = <String>{};
+    final out = <MediaItem>[];
+    for (final r in results) {
+      for (final m in r.items) {
+        if (seen.add(m.key)) out.add(m);
+      }
+    }
+    return out.take(limit).toList();
+  }
+
+  // ---------------------------------------------------------------- people & keywords
+
+  /// Returns {id, name, department, popularity} of the best matching person, or null.
+  Future<Map<String, dynamic>?> searchPerson(String query) async {
+    final j = await _get('/search/person', {'query': query, 'include_adult': 'false'});
+    final results = ((j['results'] as List?) ?? const []).whereType<Map<String, dynamic>>().toList();
+    if (results.isEmpty) return null;
+    return results.first;
+  }
+
+  /// Best rated titles of a person. role: 'cast' or 'director'.
+  Future<List<MediaItem>> personTop(int personId, MediaType type, String role, int limit) async {
+    final j = await _get('/person/$personId/${type == MediaType.movie ? 'movie' : 'tv'}_credits');
+    final key = role == 'director' ? 'crew' : 'cast';
+    final raw = ((j[key] as List?) ?? const []).whereType<Map<String, dynamic>>().where((c) {
+      if (role == 'director') {
+        return c['job'] == 'Director' || (type == MediaType.tv && c['job'] == 'Executive Producer');
+      }
+      final ch = ((c['character'] as String?) ?? '').toLowerCase();
+      if (ch.contains('himself') || ch.contains('herself') || ch == 'self') {
+        return false;
+      }
+      final g = (c['genre_ids'] as List?) ?? const [];
+      // skip documentaries, talk shows, news & reality
+      return !(g.contains(99) || g.contains(10767) || g.contains(10763) || g.contains(10764));
+    }).toList();
+    final items = <MediaItem>[];
+    final seen = <int>{};
+    for (final r in raw) {
+      final m = MediaItem.tryParse(r, forcedType: type);
+      if (m != null && seen.add(m.id) && m.posterPath != null) items.add(m);
+    }
+    for (final threshold in const [800, 300, 100, 20, 0]) {
+      final pool = items.where((m) => m.voteCount >= threshold).toList();
+      if (pool.length >= limit || threshold == 0) {
+        pool.sort((a, b) => b.voteAverage.compareTo(a.voteAverage));
+        return pool.take(limit).toList();
+      }
+    }
+    return const [];
+  }
+
+  Future<int?> searchKeywordId(String query) async {
+    final j = await _get('/search/keyword', {'query': query}, 'en-US');
+    final results = ((j['results'] as List?) ?? const []).whereType<Map<String, dynamic>>().toList();
+    if (results.isEmpty) return null;
+    final q = query.toLowerCase().trim();
+    for (final r in results) {
+      if (((r['name'] as String?) ?? '').toLowerCase() == q) return (r['id'] as num).toInt();
+    }
+    return (results.first['id'] as num).toInt();
+  }
+
+  /// Find a movie by its (English) title and release year.
+  Future<MediaItem?> findMovie(String title, int year) async {
+    final j = await _get('/search/movie', {'query': title, 'include_adult': 'false'});
+    final list = PagedResult.fromJson(j, forcedType: MediaType.movie).items;
+    if (list.isEmpty) return null;
+    for (final m in list) {
+      final y = int.tryParse(m.year) ?? 0;
+      if ((y - year).abs() <= 1) return m;
+    }
+    return list.first;
   }
 
   // ---------------------------------------------------------------- misc

@@ -66,7 +66,13 @@ class MediaItem {
       date: _str(type == MediaType.movie ? j['release_date'] : j['first_air_date']),
       overview: (j['overview'] as String?) ?? '',
       genreIds: (j['genre_ids'] as List?)?.whereType<num>().map((e) => e.toInt()).toList() ??
-          const [],
+          ((j['genres'] as List?)
+                  ?.whereType<Map>()
+                  .map((g) => g['id'])
+                  .whereType<num>()
+                  .map((e) => e.toInt())
+                  .toList() ??
+              const []),
       originalLanguage: _str(j['original_language']),
       popularity: _toDouble(j['popularity']),
     );

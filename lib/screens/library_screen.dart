@@ -51,7 +51,7 @@ class _ListGrid extends StatelessWidget {
             : FilledButton.icon(
                 icon: const Icon(Icons.auto_awesome_rounded),
                 label: Text(s.t('go_advisor')),
-                onPressed: () => context.read<SettingsState>().goToTab(1),
+                onPressed: () => context.read<SettingsState>().goToTab(2),
               ),
       );
     }
