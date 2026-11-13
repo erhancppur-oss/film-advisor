@@ -104,7 +104,7 @@ class _Header extends StatelessWidget {
     final meta = <String>[
       if (item.year.isNotEmpty) item.year,
       if (d?.runtime != null) '${d!.runtime} ${s.t('min')}',
-      if (d?.seasons != null && d!.seasons! > 0) s.t('seasons', {'n': '${d!.seasons}'}),
+      if (d?.seasons != null && d!.seasons! > 0) s.t('seasons', {'n': '${d.seasons}'}),
       if (d?.certification != null) d!.certification!,
     ];
     return Padding(

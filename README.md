@@ -63,7 +63,7 @@ Secrets: `KEYSTORE_BASE64` (keystore.b64 içeriği), `KEYSTORE_PASSWORD`, `KEY_A
 
 ## 2b) Kendi bilgisayarında derle
 
-Gerekenler: Flutter (stable, ≥ 3.29), Android Studio (SDK 36), JDK 17.
+Gerekenler: Flutter (stable, ≥ 3.29), Android Studio (SDK 36), JDK 21.
 
 ```bash
 python3 tool/prepare_android.py --app-id com.adsoyad.filmadvisor   # android/ oluşturur ve ayarlar
