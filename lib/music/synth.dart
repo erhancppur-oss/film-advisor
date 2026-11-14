@@ -77,6 +77,11 @@ int _hash(String s) {
   return h;
 }
 
+double _tanh(double x) {
+  final e = math.exp(2 * x.clamp(-10.0, 10.0));
+  return (e - 1) / (e + 1);
+}
+
 double _mtof(num midi) => 440.0 * math.pow(2, (midi - 69) / 12).toDouble();
 
 // ------------------------------------------------------------------ song
@@ -1147,14 +1152,16 @@ Float64List _finish(_Song s) {
   for (int i = 0; i < s.tail && i < s.length; i++) {
     out[i] += x[s.length + i];
   }
-  double peak = 1e-9;
+  // loudness-normalise (equal perceived level across themes) + soft limiter
+  double sum = 0;
   for (final v in out) {
-    if (v.isFinite) peak = math.max(peak, v.abs());
+    if (v.isFinite) sum += v * v;
   }
-  final g = 0.89 / peak;
+  final rms = math.sqrt(sum / out.length) + 1e-9;
+  final g = 0.17 / rms;
   for (int i = 0; i < out.length; i++) {
     final v = out[i];
-    out[i] = v.isFinite ? v * g : 0;
+    out[i] = v.isFinite ? _tanh(v * g) * 0.95 : 0;
   }
   return out;
 }

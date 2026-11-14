@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../l10n/strings.dart';
+import '../music/music_service.dart';
 import '../services/tmdb_api.dart';
 import '../state/advisor_prefs.dart';
 import '../state/library_state.dart';
@@ -64,6 +65,16 @@ class SettingsScreen extends StatelessWidget {
             onSelected: st.setThemeMode,
           ),
         ),
+        Builder(builder: (context) {
+          final m = context.watch<MusicService>();
+          return SwitchListTile(
+            secondary: const Icon(Icons.music_note_rounded),
+            title: Text(s.t('set_music')),
+            subtitle: Text(s.t('set_music_d')),
+            value: m.enabled,
+            onChanged: m.setEnabled,
+          );
+        }),
         ListTile(
           leading: const Icon(Icons.public_rounded),
           title: Text(s.t('set_region')),

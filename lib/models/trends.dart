@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../l10n/strings.dart';
 import '../services/tmdb_api.dart';
 import 'advisor.dart';
@@ -405,4 +407,234 @@ Future<TrendDef?> resolveCustomTrend(TmdbApi api, String input, int n, MediaType
     );
   }
   return null;
+}
+
+// ---------------------------------------------------------------------- pick-only list builder
+
+class PersonPick {
+  final int? id;
+  final String name;
+  final String? profilePath;
+  const PersonPick(this.name, {this.id, this.profilePath});
+}
+
+const Map<String, String> kGenreEmoji = {
+  'action': '💥',
+  'adventure': '🗺️',
+  'animation': '🧸',
+  'comedy': '😂',
+  'crime': '🕵️',
+  'documentary': '🎥',
+  'drama': '🎭',
+  'family': '👨‍👩‍👧',
+  'fantasy': '🐉',
+  'history': '📜',
+  'horror': '👻',
+  'music': '🎵',
+  'mystery': '🔍',
+  'romance': '❤️',
+  'scifi': '🚀',
+  'thriller': '🔪',
+  'war': '🪖',
+  'western': '🤠',
+};
+
+class CountryOption {
+  final String lang; // original language code used by TMDB
+  final String flag;
+  const CountryOption(this.lang, this.flag);
+}
+
+const List<CountryOption> kCountries = [
+  CountryOption('tr', '🇹🇷'),
+  CountryOption('en', '🇺🇸'),
+  CountryOption('ko', '🇰🇷'),
+  CountryOption('ja', '🇯🇵'),
+  CountryOption('fr', '🇫🇷'),
+  CountryOption('es', '🇪🇸'),
+  CountryOption('it', '🇮🇹'),
+  CountryOption('de', '🇩🇪'),
+  CountryOption('hi', '🇮🇳'),
+  CountryOption('zh', '🇨🇳'),
+  CountryOption('ru', '🇷🇺'),
+  CountryOption('pt', '🇧🇷'),
+  CountryOption('sv', '🇸🇪'),
+  CountryOption('da', '🇩🇰'),
+];
+
+const List<String> kLegendActors = [
+  'Brad Pitt', 'Leonardo DiCaprio', 'Tom Hanks', 'Jason Statham', 'Keanu Reeves',
+  'Denzel Washington', 'Al Pacino', 'Robert De Niro', 'Meryl Streep', 'Scarlett Johansson',
+  'Morgan Freeman', 'Tom Cruise', 'Johnny Depp', 'Will Smith', 'Christian Bale', 'Matt Damon',
+  'Natalie Portman', 'Anthony Hopkins', 'Jack Nicholson', 'Dwayne Johnson', 'Cillian Murphy',
+  'Margot Robbie', 'Ryan Gosling', 'Harrison Ford', 'Jim Carrey', 'Adam Sandler',
+  'Sylvester Stallone', 'Arnold Schwarzenegger', 'Jackie Chan', 'Robin Williams',
+];
+
+const List<String> kTurkishActors = [
+  'Cem Yılmaz', 'Kemal Sunal', 'Şener Şen', 'Haluk Bilginer', 'Kıvanç Tatlıtuğ',
+  'Engin Altan Düzyatan', 'Beren Saat', 'Halit Ergenç', 'Burak Özçivit', 'Ata Demirer',
+  'Tarık Akan', 'Türkan Şoray', 'Yılmaz Erdoğan', 'Çağatay Ulusoy', 'Kenan İmirzalıoğlu',
+  'Nejat İşler', 'Uğur Yücel', 'Tuba Büyüküstün', 'Hande Erçel', 'Kerem Bürsin',
+];
+
+const List<String> kDirectors = [
+  'Christopher Nolan', 'Quentin Tarantino', 'Martin Scorsese', 'Steven Spielberg', 'Stanley Kubrick',
+  'Denis Villeneuve', 'David Fincher', 'Ridley Scott', 'James Cameron', 'Alfred Hitchcock',
+  'Francis Ford Coppola', 'Peter Jackson', 'Guy Ritchie', 'Wes Anderson', 'Tim Burton',
+  'Hayao Miyazaki', 'Bong Joon-ho', 'Clint Eastwood', 'Sergio Leone', 'Akira Kurosawa',
+];
+
+const List<String> kTurkishDirectors = [
+  'Nuri Bilge Ceylan', 'Ertem Eğilmez', 'Yılmaz Güney', 'Zeki Demirkubuz', 'Ferzan Özpetek',
+  'Cem Yılmaz', 'Yılmaz Erdoğan', 'Çağan Irmak', 'Fatih Akın', 'Semih Kaplanoğlu',
+];
+
+/// User-built list: every field is optional and picked from menus.
+class ListFilter {
+  MediaType type;
+  String? genre;
+  int? year;
+  int? decade;
+  PersonPick? actor;
+  PersonPick? director;
+  String? lang;
+  String sort; // best | popular | votes | newest
+  int n;
+
+  ListFilter({
+    this.type = MediaType.movie,
+    this.genre,
+    this.year,
+    this.decade,
+    this.actor,
+    this.director,
+    this.lang,
+    this.sort = 'best',
+    this.n = 10,
+  });
+
+  ListFilter copy() => ListFilter(
+        type: type,
+        genre: genre,
+        year: year,
+        decade: decade,
+        actor: actor,
+        director: director,
+        lang: lang,
+        sort: sort,
+        n: n,
+      );
+
+  String title(S s) {
+    final parts = <String>[
+      s.t('top_n', {'n': '$n'}),
+      type == MediaType.movie ? s.t('movies') : s.t('series'),
+      if (genre != null) s.t('genre_$genre'),
+      if (year != null) '$year',
+      if (decade != null) '$decade–${decade! + 9}',
+      if (actor != null) actor!.name,
+      if (director != null) '🎬 ${director!.name}',
+      if (lang != null) s.t('lang_$lang'),
+      if (sort != 'best') s.t('sort_$sort'),
+    ];
+    return parts.join(' · ');
+  }
+
+  int? get genreId {
+    for (final g in kGenres) {
+      if (g.key == genre) return g.idFor(type);
+    }
+    return null;
+  }
+}
+
+Future<int?> _personId(TmdbApi api, PersonPick p) async {
+  if (p.id != null) return p.id;
+  final j = await api.searchPerson(p.name);
+  return j == null ? null : (j['id'] as num).toInt();
+}
+
+String _sortParam(String sort, MediaType t) {
+  switch (sort) {
+    case 'popular':
+      return 'popularity.desc';
+    case 'votes':
+      return 'vote_count.desc';
+    case 'newest':
+      return t == MediaType.movie ? 'primary_release_date.desc' : 'first_air_date.desc';
+    default:
+      return 'vote_average.desc';
+  }
+}
+
+Future<List<MediaItem>> loadFilter(TmdbApi api, ListFilter f) async {
+  final isMovie = f.type == MediaType.movie;
+  final gid = f.genreId;
+  final person = f.director ?? f.actor;
+
+  // Person lists for TV, and director lists, are built from the person's credits.
+  if (person != null && (f.director != null || !isMovie)) {
+    final id = await _personId(api, person);
+    if (id == null) return const [];
+    var items = await api.personTop(id, f.type, f.director != null ? 'director' : 'cast', 500);
+    items = items.where((m) {
+      final y = int.tryParse(m.year) ?? 0;
+      if (gid != null && !m.genreIds.contains(gid)) return false;
+      if (f.year != null && y != f.year) return false;
+      if (f.decade != null && (y < f.decade! || y > f.decade! + 9)) return false;
+      if (f.lang != null && m.originalLanguage != f.lang) return false;
+      return true;
+    }).toList();
+    if (f.sort == 'best') {
+      final solid = items.where((m) => m.voteCount >= 50).toList();
+      if (solid.length >= math.min(f.n, items.length ~/ 2 + 1)) items = solid;
+    }
+    int cmp(MediaItem a, MediaItem b) {
+      switch (f.sort) {
+        case 'popular':
+          return b.popularity.compareTo(a.popularity);
+        case 'votes':
+          return b.voteCount.compareTo(a.voteCount);
+        case 'newest':
+          return (b.date ?? '').compareTo(a.date ?? '');
+        default:
+          return b.voteAverage.compareTo(a.voteAverage);
+      }
+    }
+
+    items.sort(cmp);
+    return items.take(f.n).toList();
+  }
+
+  final narrow = gid != null || f.year != null || f.decade != null || f.lang != null || person != null;
+  final now = DateTime.now();
+  final today =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final dateKey = isMovie ? 'primary_release_date' : 'first_air_date';
+  int minVotes;
+  if (f.sort == 'best') {
+    minVotes = isMovie
+        ? (person != null ? 50 : (narrow ? (f.lang != null && f.lang != 'en' ? 80 : 300) : 2000))
+        : (narrow ? 40 : 400);
+  } else {
+    minVotes = isMovie ? 20 : 10;
+  }
+  final p = <String, String>{
+    'sort_by': _sortParam(f.sort, f.type),
+    'vote_count.gte': '$minVotes',
+    '$dateKey.lte': today,
+    if (gid != null) 'with_genres': '$gid',
+    if (f.year != null && isMovie) 'primary_release_year': '${f.year}',
+    if (f.year != null && !isMovie) 'first_air_date_year': '${f.year}',
+    if (f.decade != null) '$dateKey.gte': '${f.decade}-01-01',
+    if (f.lang != null) 'with_original_language': f.lang!,
+  };
+  if (f.decade != null) p['$dateKey.lte'] = '${f.decade! + 9}-12-31';
+  if (person != null) {
+    final id = await _personId(api, person);
+    if (id == null) return const [];
+    p['with_cast'] = '$id';
+  }
+  return api.collect((page) => api.discover(f.type, p, page: page), f.n);
 }

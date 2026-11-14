@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config.dart';
 import 'l10n/strings.dart';
+import 'music/music_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/tmdb_api.dart';
@@ -22,6 +23,7 @@ Future<void> main() async {
         ChangeNotifierProvider<SettingsState>(create: (_) => SettingsState(prefs)),
         ChangeNotifierProvider<LibraryState>(create: (_) => LibraryState(prefs)),
         ChangeNotifierProvider<AdvisorPrefs>(create: (_) => AdvisorPrefs(prefs)),
+        ChangeNotifierProvider<MusicService>(create: (_) => MusicService(prefs), lazy: false),
       ],
       child: const FilmAdvisorApp(),
     ),
@@ -82,6 +84,8 @@ class _Root extends StatelessWidget {
     context.read<TmdbApi>().configure(languageCode: lang, region: region);
 
     if (!st.onboarded) return const OnboardingScreen();
+    final music = context.read<MusicService>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => music.start());
     return HomeShell(key: ValueKey('home_${lang}_$region'));
   }
 }

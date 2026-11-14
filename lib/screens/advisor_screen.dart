@@ -8,10 +8,12 @@ import '../config.dart';
 import '../l10n/strings.dart';
 import '../models/advisor.dart';
 import '../models/media.dart';
+import '../music/music_service.dart';
 import '../services/tmdb_api.dart';
 import '../state/advisor_prefs.dart';
 import '../state/library_state.dart';
 import '../widgets/common.dart';
+import '../widgets/music_button.dart';
 import 'results_screen.dart';
 
 // ============================================================== feeds
@@ -203,6 +205,7 @@ class AdvisorScreen extends StatelessWidget {
         loader: feed.load,
         isRelaxed: () => feed.relaxed,
         showHint: true,
+        musicTheme: themeForMood(moodKey),
         banner: s.t('pick_reason', {
           'when': s.t('when_$when'),
           'mood': '${mood.emoji} ${s.t('mood_$moodKey')}',
@@ -256,7 +259,7 @@ class AdvisorScreen extends StatelessWidget {
           () => _push(context, const PlatformAdvisorScreen())),
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(s.t('adv_hub_title'))),
+      appBar: AppBar(title: Text(s.t('adv_hub_title')), actions: const [MusicButton()]),
       body: LayoutBuilder(builder: (context, c) {
         final cols = c.maxWidth > 600 ? 3 : 2;
         return GridView.count(
@@ -444,6 +447,7 @@ class _MoodAdvisorScreenState extends State<MoodAdvisorScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ResultsScreen(
         title: '${mood.emoji} ${s.t('mood_$moodKey')}',
+        musicTheme: themeForMood(moodKey),
         loader: feed.load,
         isRelaxed: () => feed.relaxed,
         showHint: true,

@@ -7,6 +7,7 @@ import '../models/media.dart';
 import '../state/library_state.dart';
 import '../state/settings_state.dart';
 import '../widgets/common.dart';
+import '../widgets/music_button.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -20,6 +21,7 @@ class LibraryScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(s.t('nav_library')),
+          actions: const [MusicButton()],
           bottom: TabBar(tabs: [
             Tab(text: '${s.t('tab_watchlist')} (${lib.watchlist.length})'),
             Tab(text: '${s.t('tab_watched')} (${lib.watched.length})'),

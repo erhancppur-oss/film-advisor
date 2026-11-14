@@ -241,6 +241,21 @@ class TmdbApi {
     return const [];
   }
 
+  /// Popular people with a photo (actors by default).
+  Future<List<Map<String, dynamic>>> popularPeople({int pages = 3, String department = 'Acting'}) async {
+    final res = await Future.wait(List.generate(pages, (i) => _get('/person/popular', {'page': '${i + 1}'})));
+    final out = <Map<String, dynamic>>[];
+    final seen = <int>{};
+    for (final j in res) {
+      for (final p in ((j['results'] as List?) ?? const []).whereType<Map<String, dynamic>>()) {
+        if (p['known_for_department'] != department || p['profile_path'] == null) continue;
+        if (p['adult'] == true) continue;
+        if (seen.add((p['id'] as num).toInt())) out.add(p);
+      }
+    }
+    return out;
+  }
+
   Future<int?> searchKeywordId(String query) async {
     final j = await _get('/search/keyword', {'query': query}, 'en-US');
     final results = ((j['results'] as List?) ?? const []).whereType<Map<String, dynamic>>().toList();

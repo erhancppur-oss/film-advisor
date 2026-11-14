@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../l10n/strings.dart';
 import '../models/media.dart';
+import '../music/music_service.dart';
 import '../state/library_state.dart';
 import '../widgets/common.dart';
 import '../widgets/media_row.dart';
+import '../widgets/music_button.dart';
 import '../widgets/swipe_deck.dart';
 
 /// Shows a stream of titles either as a swipe deck or as a grid.
@@ -19,6 +21,7 @@ class ResultsScreen extends StatefulWidget {
     this.showHint = false,
     this.onChangeCriteria,
     this.banner,
+    this.musicTheme,
   });
 
   final String title;
@@ -27,12 +30,13 @@ class ResultsScreen extends StatefulWidget {
   final bool showHint;
   final VoidCallback? onChangeCriteria;
   final String? banner;
+  final String? musicTheme;
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
 }
 
-class _ResultsScreenState extends State<ResultsScreen> {
+class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
   final List<MediaItem> _items = [];
   final Set<String> _keys = {};
   int _page = 0;
@@ -45,6 +49,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.musicTheme != null) startMusic(context.read<MusicService>(), widget.musicTheme!);
     _loadMore();
   }
 
@@ -173,6 +178,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          const MusicButton(),
           if (widget.onChangeCriteria != null)
             IconButton(
               tooltip: s.t('change_criteria'),
