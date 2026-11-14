@@ -18,7 +18,7 @@ class AppConfig {
   static const String contactEmail = String.fromEnvironment('CONTACT_EMAIL');
 
   static const String appName = 'Film Advisor';
-  static const String appVersion = '1.2.0';
+  static const String appVersion = '1.2.1';
   static const String developer = 'Maximasoft';
 
   static const String imageBase = 'https://image.tmdb.org/t/p/';

@@ -16,6 +16,7 @@ class SwipeDeck extends StatefulWidget {
     required this.onSkip,
     required this.onOpen,
     this.onNearEnd,
+    this.onTopChanged,
     required this.empty,
   });
 
@@ -24,6 +25,7 @@ class SwipeDeck extends StatefulWidget {
   final void Function(MediaItem) onSkip;
   final void Function(MediaItem) onOpen;
   final VoidCallback? onNearEnd;
+  final void Function(MediaItem)? onTopChanged;
   final Widget empty;
 
   @override
@@ -37,6 +39,7 @@ class _SwipeDeckState extends State<SwipeDeck> with SingleTickerProviderStateMix
   Animation<Offset>? _anim;
   bool _flyingOut = false;
   bool _liked = false;
+  String? _notifiedKey;
 
   static const double _threshold = 110;
 
@@ -103,6 +106,13 @@ class _SwipeDeckState extends State<SwipeDeck> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     final s = S.of(context);
     if (!_hasCard) return widget.empty;
+    final top = widget.items[_index];
+    if (widget.onTopChanged != null && _notifiedKey != top.key) {
+      _notifiedKey = top.key;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onTopChanged!(top);
+      });
+    }
 
     final cards = <Widget>[];
     final last = math.min(_index + 2, widget.items.length - 1);

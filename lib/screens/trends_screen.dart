@@ -6,10 +6,8 @@ import '../l10n/strings.dart';
 import '../models/advisor.dart';
 import '../models/media.dart';
 import '../models/trends.dart';
-import '../music/music_service.dart';
 import '../services/tmdb_api.dart';
 import '../widgets/common.dart';
-import '../widgets/music_button.dart';
 
 const _palettes = <List<Color>>[
   [Color(0xFF7C5CFF), Color(0xFFFF5CA8)],
@@ -43,7 +41,7 @@ class TrendsScreen extends StatelessWidget {
     final year = DateTime.now().year;
 
     return Scaffold(
-      appBar: AppBar(title: Text(s.t('trends_title')), actions: const [MusicButton()]),
+      appBar: AppBar(title: Text(s.t('trends_title'))),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 28),
         children: [
@@ -881,43 +879,31 @@ class _YearCell extends StatelessWidget {
 
 /// Numbered list (#1, #2 …) with a backdrop header.
 class RankedListScreen extends StatefulWidget {
-  const RankedListScreen({super.key, required this.title, required this.loader, this.musicTheme});
+  const RankedListScreen({super.key, required this.title, required this.loader});
 
   factory RankedListScreen.fromDef(TrendDef d) => RankedListScreen(
         title: d.title,
         loader: (api) => loadTrend(api, d),
-        musicTheme: d.args['genre'] == null ? null : _genreTheme(d.args['genre']!),
       );
 
   factory RankedListScreen.fromFilter(ListFilter f) => RankedListScreen(
         title: f.title,
         loader: (api) => loadFilter(api, f),
-        musicTheme: f.genre == null ? null : _genreTheme(f.genre!),
       );
 
   final String Function(S s) title;
   final Future<List<MediaItem>> Function(TmdbApi api) loader;
-  final String? musicTheme;
-
-  static String _genreTheme(String key) {
-    for (final g in kGenres) {
-      if (g.key == key) return themeForGenres([if (g.movieId != null) g.movieId!, if (g.tvId != null) g.tvId!]);
-    }
-    return 'ambient';
-  }
-
   @override
   State<RankedListScreen> createState() => _RankedListScreenState();
 }
 
-class _RankedListScreenState extends State<RankedListScreen> with MusicTheme {
+class _RankedListScreenState extends State<RankedListScreen> {
   late Future<List<MediaItem>> _future;
 
   @override
   void initState() {
     super.initState();
     _future = widget.loader(context.read<TmdbApi>());
-    if (widget.musicTheme != null) startMusic(context.read<MusicService>(), widget.musicTheme!);
   }
 
   @override
@@ -935,7 +921,6 @@ class _RankedListScreenState extends State<RankedListScreen> with MusicTheme {
             SliverAppBar(
               pinned: true,
               expandedHeight: 210,
-              actions: const [MusicButton()],
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: const EdgeInsetsDirectional.only(start: 52, bottom: 14, end: 52),
                 title: Text(title,

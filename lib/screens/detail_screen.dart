@@ -4,13 +4,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../l10n/strings.dart';
-import '../music/music_service.dart';
 import '../models/media.dart';
 import '../services/tmdb_api.dart';
 import '../state/library_state.dart';
 import '../widgets/common.dart';
 import '../widgets/media_row.dart';
-import '../widgets/music_button.dart';
 
 Future<void> openUrl(BuildContext context, String url) async {
   final uri = Uri.parse(url);
@@ -29,19 +27,13 @@ class DetailScreen extends StatefulWidget {
   State<DetailScreen> createState() => _DetailScreenState();
 }
 
-class _DetailScreenState extends State<DetailScreen> with MusicTheme {
+class _DetailScreenState extends State<DetailScreen> {
   late Future<MediaDetail> _future;
 
   @override
   void initState() {
     super.initState();
     _future = context.read<TmdbApi>().details(widget.item.type, widget.item.id);
-    startMusic(context.read<MusicService>(), themeForGenres(widget.item.genreIds), seed: widget.item.id);
-    _future.then((d) {
-      if (mounted && widget.item.genreIds.isEmpty) {
-        changeMusicTheme(themeForGenres(d.genres.map((g) => g.id).toList()));
-      }
-    }).catchError((_) {});
   }
 
   void _retry() => setState(() {
@@ -59,7 +51,6 @@ class _DetailScreenState extends State<DetailScreen> with MusicTheme {
             SliverAppBar(
               pinned: true,
               expandedHeight: 230,
-              actions: const [MusicButton()],
               stretch: true,
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(fit: StackFit.expand, children: [

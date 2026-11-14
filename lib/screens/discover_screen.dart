@@ -11,7 +11,6 @@ import '../widgets/common.dart';
 import '../widgets/hero_carousel.dart';
 import '../widgets/media_row.dart';
 import '../widgets/language_button.dart';
-import '../widgets/music_button.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
 
@@ -28,7 +27,6 @@ class DiscoverScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Film Advisor', style: TextStyle(fontWeight: FontWeight.w800)),
             actions: [
-              const MusicButton(),
               const LanguageButton(),
               IconButton(
                 tooltip: s.t('quick_swipe'),

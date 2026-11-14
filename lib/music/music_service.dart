@@ -71,7 +71,6 @@ class MusicService extends ChangeNotifier with WidgetsBindingObserver {
     _player
         .setAudioContext(AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers).build())
         .catchError((_) {});
-    _stack.add(_Entry('ambient', _rnd.nextInt(kTracksPerTheme)));
   }
 
   final SharedPreferences _prefs;
@@ -123,18 +122,21 @@ class MusicService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Change the theme of an existing entry (e.g. once genres are known).
-  void retheme(Object token, String theme) {
-    if (token is! _Entry || token.theme == theme) return;
+  void retheme(Object token, String theme, {int? seed}) {
+    if (token is! _Entry) return;
     final i = _stack.indexOf(token);
     if (i < 0) return;
+    if (seed == null && token.theme == theme) return;
+    var idx = seed == null ? token.index : seed.abs() % kTracksPerTheme;
+    if (seed != null && theme == token.theme && idx == token.index) idx = (idx + 1) % kTracksPerTheme;
     token.theme = theme;
+    token.index = idx;
     if (i == _stack.length - 1) _apply();
   }
 
   void pop(Object token) {
     final wasTop = _stack.isNotEmpty && identical(_stack.last, token);
     _stack.removeWhere((e) => identical(e, token));
-    if (_stack.isEmpty) _stack.add(_Entry('ambient', 0));
     if (wasTop) _apply();
   }
 
@@ -199,6 +201,12 @@ class MusicService extends ChangeNotifier with WidgetsBindingObserver {
       if (!_enabled) _playingKey = null;
       return;
     }
+    if (_stack.isEmpty) {
+      _fadeTo(0, d: const Duration(milliseconds: 700), done: () {
+        if (gen == _gen) _player.pause().catchError((_) {});
+      });
+      return;
+    }
     final e = _stack.last;
     final key = '${e.theme}_${e.index}';
     final target = e.theme == 'ambient' ? _ambientVolume : _themeVolume;
@@ -249,8 +257,8 @@ mixin MusicTheme<T extends StatefulWidget> on State<T> {
     _musicToken = music.push(theme, seed: seed);
   }
 
-  void changeMusicTheme(String theme) {
-    if (_musicToken != null) _music?.retheme(_musicToken!, theme);
+  void changeMusicTheme(String theme, {int? seed}) {
+    if (_musicToken != null) _music?.retheme(_musicToken!, theme, seed: seed);
   }
 
   @override

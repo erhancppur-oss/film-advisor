@@ -127,6 +127,9 @@ class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
         onSkip: _skip,
         onOpen: (m) => openDetail(context, m),
         onNearEnd: _loadMore,
+        onTopChanged: widget.musicTheme == null
+            ? null
+            : (m) => changeMusicTheme(themeForGenres(m.genreIds), seed: m.id),
         empty: _loading
             ? const Center(child: CircularProgressIndicator())
             : EmptyView(
@@ -178,7 +181,7 @@ class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
-          const MusicButton(),
+          if (widget.musicTheme != null) const MusicButton(),
           if (widget.onChangeCriteria != null)
             IconButton(
               tooltip: s.t('change_criteria'),

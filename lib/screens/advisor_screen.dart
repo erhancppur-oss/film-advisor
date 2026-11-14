@@ -236,6 +236,7 @@ class AdvisorScreen extends StatelessWidget {
       context,
       ResultsScreen(
         title: s.t('mode_profile'),
+        musicTheme: 'ambient',
         loader: feed.load,
         showHint: true,
         banner: s.t('profile_reason', {'n': '${seeds.length}'}),
@@ -509,6 +510,7 @@ class _SimilarAdvisorScreenState extends State<SimilarAdvisorScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ResultsScreen(
         title: s.t('similar_title', {'title': m.title}),
+        musicTheme: themeForGenres(m.genreIds),
         loader: feed.load,
         showHint: true,
       ),
@@ -695,6 +697,7 @@ class _PlatformAdvisorScreenState extends State<PlatformAdvisorScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ResultsScreen(
         title: s.t('mode_platform'),
+        musicTheme: 'ambient',
         loader: feed.load,
         isRelaxed: () => feed.relaxed,
         showHint: true,
@@ -803,6 +806,7 @@ class _ManualAdvisorScreenState extends State<ManualAdvisorScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (ctx) => ResultsScreen(
         title: s.t('results_title'),
+        musicTheme: themeForMood(_c.moodKey),
         loader: feed.load,
         isRelaxed: () => feed.relaxed,
         showHint: true,

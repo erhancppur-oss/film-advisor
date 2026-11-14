@@ -9,7 +9,6 @@ import '../models/media.dart';
 import '../services/tmdb_api.dart';
 import '../state/library_state.dart';
 import '../widgets/common.dart';
-import '../widgets/music_button.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -66,7 +65,6 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 12,
-        actions: const [MusicButton()],
         title: TextField(
           controller: _ctrl,
           onChanged: _onChanged,
