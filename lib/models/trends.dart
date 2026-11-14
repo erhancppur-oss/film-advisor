@@ -122,10 +122,12 @@ List<TrendSection> buildTrendSections() {
   return [
     TrendSection('sec_all_time', [
       const TrendDef(
-          id: 'top_movies', kind: TrendKind.category, titleKey: 'trend_top_movies', query: 'top_rated',
+          id: 'top_movies', kind: TrendKind.discover, titleKey: 'trend_top_movies',
+          params: {'sort_by': 'vote_average.desc', 'vote_count.gte': '5000'},
           limit: 100, emoji: '🏆'),
       const TrendDef(
-          id: 'top_tv', kind: TrendKind.category, titleKey: 'trend_top_tv', query: 'top_rated',
+          id: 'top_tv', kind: TrendKind.discover, titleKey: 'trend_top_tv',
+          params: {'sort_by': 'vote_average.desc', 'vote_count.gte': '1500', 'without_genres': '10767,10763,10764'},
           type: MediaType.tv, limit: 100, emoji: '📺'),
       TrendDef(
           id: 'pop_year', kind: TrendKind.discover, titleKey: 'trend_popular_year', limit: 20,

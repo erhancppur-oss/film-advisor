@@ -198,7 +198,14 @@ class _FeedState extends State<_Feed> with AutomaticKeepAliveClientMixin {
           'vote_count.gte': isMovie ? '20' : '5',
         }, p),
       ),
-      MediaRow(title: s.t('sec_top_rated'), loader: (p) => api.category(t, 'top_rated', page: p)),
+      MediaRow(
+        title: s.t('sec_top_rated'),
+        loader: (p) => disc({
+          'sort_by': 'vote_average.desc',
+          'vote_count.gte': isMovie ? '5000' : '1500',
+          if (!isMovie) 'without_genres': '10767,10763,10764',
+        }, p),
+      ),
       if (isMovie) ...[
         MediaRow(title: s.t('sec_upcoming'), loader: (p) => api.category(t, 'upcoming', page: p)),
         MediaRow(

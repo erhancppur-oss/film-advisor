@@ -37,7 +37,8 @@ void main() {
     await prefs.setString('language', lang);
     await prefs.setString('region', lang == 'tr' ? 'TR' : 'US');
     await prefs.setBool('onboarded', true);
-    await prefs.setBool('music_on', false);
+    await prefs.setBool('music_on', true);
+    await prefs.setInt('theme', ThemeMode.dark.index);
 
     app.main();
     await wait(tester, 9000);
