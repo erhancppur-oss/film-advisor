@@ -1,5 +1,7 @@
 # Film Advisor 🎬
 
+by **Maximasoft** · Play Store yayın adımları: [PLAY_STORE.md](PLAY_STORE.md)
+
 Film ve dizi keşif + öneri uygulaması (Flutter, Android). Veriler ücretsiz **TMDB API**'den gelir. Türkçe / İngilizce arayüz.
 
 > This product uses the TMDB API but is not endorsed or certified by TMDB.

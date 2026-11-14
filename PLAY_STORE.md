@@ -1,176 +1,176 @@
-# Google Play'de Yayınlama Rehberi – Film Advisor
+# Film Advisor – Google Play Yayın Rehberi (Maximasoft)
 
-Bu dosya; mağaza metinlerini, Play Console formlarına verilecek cevapları ve yayın kontrol listesini içerir. (Kurallar Kasım 2026 itibarıyla kontrol edilmiştir; Play Console'daki güncel uyarıları her zaman esas al.)
+Sürüm 1.2.1 · Paket adı: `com.maximasoft.filmadvisor` · Kasım 2026 kurallarına göre hazırlandı.
 
 ---
 
-## 1. Uygulamada zaten karşılanan teknik kurallar
+## A. Bir kerelik hazırlık (yaklaşık 10 dakika)
 
-| Kural | Durum |
+### 1) İmza anahtarını GitHub'a ekle
+`imza/` klasöründeki bilgileri repoya **Settings → Secrets and variables → Actions → New repository secret** ile ekle:
+
+| Secret adı | Değer |
 |---|---|
-| Yeni uygulamalar **Android 16 (API 36)** hedeflemeli (31 Ağustos 2026'dan beri) | `tool/prepare_android.py` `targetSdk = maxOf(36, …)` ayarlıyor |
-| Yükleme formatı **AAB** (Android App Bundle) | CI `app-release.aab` üretiyor |
-| 16 KB sayfa boyutu uyumu | Güncel Flutter stable ile otomatik (CI hep son stable'ı kullanır) |
-| Gereksiz izin yok | Sadece `INTERNET` izni var |
-| Gizlilik politikası | `docs/privacy-policy.html` (TR + EN) + uygulama içinde link |
-| Reklam / takip / analytics SDK yok | Data safety formu basit |
-| Hesap yok → hesap silme zorunluluğu yok | ✔ |
-| Yetişkin içerik yok | Tüm TMDB isteklerinde `include_adult=false` |
-| TMDB atıf şartı | Ayarlar → Hakkında: TMDB logosu + "This product uses the TMDB API but is not endorsed or certified by TMDB." |
-| JustWatch atfı | Detay sayfasında ve Hakkında'da |
-| Kenardan kenara (edge‑to‑edge), tahmini geri hareketi, büyük ekran | Flutter yönetiyor; ekran yönü kilitlenmedi (API 36'da büyük ekranlarda kilit yok sayılıyor) |
+| `KEYSTORE_BASE64` | `KEYSTORE_BASE64.txt` dosyasının **tüm içeriği** (tek satır) |
+| `KEYSTORE_PASSWORD` | `sifreler.txt` içindeki değer |
+| `KEY_PASSWORD` | `sifreler.txt` içindeki değer |
+| `KEY_ALIAS` | `upload` |
 
-## 2. Hesap ve test şartı (ÖNEMLİ)
+> ⚠️ `upload-keystore.jks` dosyasını ve şifreleri **güvenli bir yere yedekle** (ör. şifre yöneticisi + harici disk). Bu anahtar olmadan güncelleme yükleyemezsin. Kaybedersen Play Console → Uygulama bütünlüğü → "Yükleme anahtarını sıfırla" ile yenisini isteyebilirsin. Anahtarı kimseyle paylaşma, repoya koyma.
 
-* Play Console geliştirici hesabı: tek seferlik 25 USD + kimlik doğrulama.
-* **13 Kasım 2023'ten sonra açılmış kişisel hesaplarda**, üretime (herkese açık) çıkmadan önce **en az 12 test kullanıcısıyla, kesintisiz 14 gün kapalı test** zorunlu. Test kullanıcısı sayısı 14 gün boyunca 12'nin altına düşmesin; 15–20 kişiyle başla.
-  * Play Console → Test → **Kapalı test** → yeni kanal → AAB yükle → test kullanıcılarının Gmail adreslerini ekle → katılım linkini paylaş.
-  * 14 gün sonra "Üretim erişimi için başvur" formunu doldur (testte ne öğrendiğini, ne düzelttiğini anlat).
-* Şirket (organizasyon) hesabıysa bu şart yok ama D‑U‑N‑S numarası gerekir.
+### 2) Gizlilik politikasını yayına al (GitHub Pages)
+Repo → **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main`, klasör: `/docs` → **Save**.
+Birkaç dakika sonra şu adres açılır:
+**https://erhancppur-oss.github.io/film-advisor/privacy-policy.html**
+(Uygulama içindeki gizlilik linki de bu adrese ayarlı.)
 
-## 3. TMDB lisans notu
+### 3) İmzalı derlemeyi al
+Repo → **Actions → Build Android (APK + AAB) → Run workflow**.
+Bitince **Releases** sayfasındaki son sürümde `app-release.aab` dosyası olur → Play'e yüklenecek dosya budur.
+(Derleme kaydında "DEBUG key" uyarısı görünmemeli.)
 
-* TMDB API'si **ticari olmayan** kullanım için ücretsiz. Uygulamayı **ücretsiz ve reklamsız** dağıttığın sürece bu kapsamdasın.
-* İleride **reklam, uygulama içi satın alma veya abonelik** eklersen bu ticari kullanım sayılır ve TMDB ile ayrı ticari lisans anlaşması gerekir.
-* TMDB logosunu uygulama logosundan daha az belirgin kullan, onay/ortaklık ima etme. Resmi logoyu https://www.themoviedb.org/about/logos-attribution adresinden indirip `assets/tmdb_logo.png` olarak koy (dosya yoksa uygulama metin rozeti gösterir).
+---
 
-## 4. Mağaza kaydı metinleri
+## B. Play Console
 
-### Türkçe (tr-TR)
+### 1) Geliştirici hesabı
+https://play.google.com/console → 25 USD tek seferlik ücret, kimlik doğrulama. Geliştirici adı: **Maximasoft**.
 
-**Uygulama adı (≤30):** `Film Advisor: Film & Dizi Öner`
+### 2) Uygulama oluştur
+Uygulama adı: `Film Advisor` · Varsayılan dil: **English (United States) – en-US** · Uygulama · **Ücretsiz** · beyanları onayla.
 
-**Kısa açıklama (≤80):**
-`Ruh haline göre film ve dizi önerisi al, kaydırarak keşfet, izleme listeni tut.`
+### 3) Mağaza kaydı → Ana mağaza kaydı
+Aşağıdaki metinleri kopyala. Türkçe için **Çeviri ekle → Türkçe (tr-TR)**.
 
-**Tam açıklama:**
-```
-Bu akşam ne izlesen? Film Advisor birkaç soruyla zevkine uygun film ve dizileri bulur.
+**Grafikler**
+- Uygulama simgesi: `store/play_icon_512.png`
+- Öne çıkan grafik: `store/feature_graphic_1024x500.png`
+- Telefon ekran görüntüleri: en az 2 (önerilen 4–8), telefonundan al: Öneri ekranı (6 seçenek), kaydırma kartları, Trendler/Liste oluşturucu, film detayı.
 
-🎯 KİŞİSEL ÖNERİ SİHİRBAZI
-• Film mi dizi mi, ruh halin (gülmek, gerilmek, duygulanmak…), türler
-• Dönem, süre, minimum puan, "gizli hazineler" ya da "eleştirmen beğenisi"
-• Orijinal dil (Türk yapımları, Kore dizileri, anime…)
-• Sahip olduğun platformlar ve çocuklarla izleme modu
+> ⚠️ Ekran görüntülerinde film afişleri stüdyolara aittir; Play bazen telif gerekçesiyle reddediyor. Afişin az göründüğü ekranları (Öneri seçenekleri, Liste oluşturucu, Ayarlar/Hakkında) öne çıkar; afişli ekranlarda mümkünse eski kamu malı filmler (Nosferatu 1922, Metropolis 1927) görünsün.
 
-👆 KAYDIRARAK KEŞFET
-• Beğendiğini sağa kaydır, izleme listene eklensin; geçmek için sola
-• "Şansıma ne çıkarsa" ile rastgele kaliteli bir yapım
-
-🎬 HER ŞEY TEK YERDE
-• Gündemdekiler, vizyondakiler, yakında çıkacaklar, Türk film ve dizileri
-• Özet, oyuncular, fragman, puanlar, benzer yapımlar
-• Türkiye'de hangi platformda izlenebileceği (JustWatch verisi)
-
-📋 LİSTELERİN SENDE
-• İzlenecekler ve izlediklerin listesi
-• Üyelik yok, reklam yok; verilerin sadece telefonunda saklanır
-
-🌍 Türkçe ve İngilizce arayüz, koyu/açık tema.
-
-Film ve dizi verileri The Movie Database (TMDB) tarafından sağlanır. This product uses the TMDB API but is not endorsed or certified by TMDB.
-```
-
-### English (en-US)
-
+#### English (en-US)
 **App name:** `Film Advisor: Movie & TV Picks`
 
 **Short description:**
-`Get movie & TV picks for your mood, swipe to discover and keep a watchlist.`
+`Movie & TV picks by mood, swipe to discover, build top-10 lists. No sign-up.`
 
 **Full description:**
 ```
-What should you watch tonight? Film Advisor finds movies and shows that match your taste with a few quick questions.
+What should you watch tonight? Film Advisor finds movies and series you'll love – in seconds.
 
-🎯 PERSONAL ADVISOR
-• Movie or series, your mood (laugh, thrill, cry…), genres
-• Era, runtime, minimum rating, "hidden gems" or "critically acclaimed"
-• Original language (Turkish, Korean dramas, anime…)
-• The streaming services you have, plus a family-friendly mode
+🎯 6 WAYS TO GET RECOMMENDATIONS
+• Pick for me – we choose by the time of day and your taste
+• Based on my profile – from what you liked, watched or want to watch
+• Choose manually – genre, era, runtime, rating, language, platforms (remember your answers!)
+• Find similar – pick a title, get the closest movies & series
+• Match my mood – laugh, thrill, cry, adrenaline, mind-blown…
+• On my platforms – popular titles on your streaming services
 
 👆 SWIPE TO DISCOVER
-• Swipe right to add to your watchlist, left to skip
-• "Surprise me" picks a great random title
+Swipe right to save, left to skip. Soft background music changes with every card and matches the genre.
 
-🎬 EVERYTHING IN ONE PLACE
-• Trending, in theaters, coming soon, top rated
-• Synopsis, cast, trailer, ratings, similar titles
-• Where to stream in your country (data by JustWatch)
+🏆 TRENDS & TOP LISTS – NO TYPING
+• Build your own list: genre + year + actor + director + country, top 10/20/50/100
+• Top 100 of all time, best of every year, Oscar Best Picture winners
+• Top 10 by genre, actor, director, decade and country
 
-📋 YOUR LISTS, YOUR DEVICE
-• Watchlist and watched list
-• No sign-up, no ads; your data stays on your phone
+🎬 ALL THE DETAILS
+Synopsis, cast, trailer, ratings, similar titles and where to stream in your country.
 
-🌍 English and Turkish interface, dark/light theme.
+📋 YOUR LISTS STAY ON YOUR PHONE
+Watchlist and watched list. No account, no ads, no tracking.
 
-Movie and TV data provided by The Movie Database (TMDB). This product uses the TMDB API but is not endorsed or certified by TMDB.
+🌍 English, Türkçe, Deutsch, Français, Español, العربية · dark & light theme.
+
+Movie and TV data provided by The Movie Database (TMDB). This product uses the TMDB API but is not endorsed or certified by TMDB. Streaming data by JustWatch.
 ```
 
-**Kategori:** Eğlence (Entertainment) · **Etiketler:** Film, Dizi, Öneri
-**İletişim e‑postası:** zorunlu (Play Console'da görünür).
-**Gizlilik politikası URL'si:** GitHub Pages linkin (README'de anlatılıyor).
+#### Türkçe (tr-TR)
+**Uygulama adı:** `Film Advisor: Film & Dizi Öner`
 
-### Grafikler
-* `store/play_icon_512.png` – 512×512 uygulama simgesi ✔
-* `store/feature_graphic_1024x500.png` – öne çıkan grafik ✔
-* **Ekran görüntüleri:** telefon için en az 2 (önerilen 4–8), 1080×1920 gibi 9:16.
+**Kısa açıklama:**
+`Moduna göre film ve dizi önerisi, kaydırarak keşif, en iyi 10 listeleri.`
 
-> ⚠️ **Ekran görüntülerinde telif riski:** Film afişleri stüdyolara aittir. Play, mağaza görsellerinde başkasına ait eserlerin izinsiz kullanımını reddedebiliyor (TMDB kullanan bazı uygulamalar bu yüzden reddedildi). Güvenli yol: Ekran görüntülerinde **öneri sihirbazı, ayarlar, liste** gibi afişin az olduğu ekranları öne çıkar; afiş görünen ekranlarda **kamu malı filmler** (ör. *Nosferatu* 1922, *Metropolis* 1927, *Night of the Living Dead* 1968) seç. Açıklamada "Netflix", "IMDb" gibi markaları anahtar kelime olarak doldurma.
+**Tam açıklama:**
+```
+Bu akşam ne izlesen? Film Advisor sevebileceğin film ve dizileri saniyeler içinde bulur.
 
-## 5. Play Console form cevapları
+🎯 ÖNERİ ALMANIN 6 YOLU
+• Benim için sen seç – günün saatine ve zevkine göre biz seçelim
+• Profilime göre – beğendiğin, izlediğin ve izleyeceklerinden
+• Manuel seçim – tür, dönem, süre, puan, dil, platform (cevaplarını hatırlar!)
+• Benzerini seç – bir yapım seç, en yakın film ve dizileri getirelim
+• Moduma göre – gülmek, gerilmek, duygulanmak, adrenalin…
+• Platformlarımda ne var? – abone olduğun platformlardaki popüler yapımlar
 
-### Uygulama içeriği → Gizlilik politikası
-GitHub Pages URL'si.
+👆 KAYDIRARAK KEŞFET
+Beğendiğini sağa kaydır, geçmek için sola. Türe uygun hafif arka plan müziği her kartta değişir.
 
-### Reklamlar
-**Hayır, uygulamamda reklam yok.**
+🏆 TRENDLER VE EN İYİ LİSTELERİ – YAZMADAN
+• Kendi listeni oluştur: tür + yıl + oyuncu + yönetmen + ülke, ilk 10/20/50/100
+• Tüm zamanların en iyi 100'ü, her yılın en iyileri, Oscar'lı filmler
+• Türe, oyuncuya, yönetmene, on yıla ve ülkeye göre en iyi 10'lar
 
-### Uygulama erişimi
-**Tüm işlevler özel erişim gerektirmeden kullanılabilir.** (Giriş yok.)
+🎬 TÜM DETAYLAR
+Özet, oyuncular, fragman, puanlar, benzer yapımlar ve Türkiye'de hangi platformda izlenebileceği.
 
-### İçerik derecelendirmesi (IARC anketi)
-* Kategori: oyun değil → **"Diğer tüm uygulama türleri"** seçeneği.
-* Şiddet/korku: Uygulama kendisi şiddet üretmez ama **film afişleri ve özetleri** korku/şiddet ima edebilir → ilgili sorulara dürüstçe "evet, hafif/ima" cevabı ver.
-* Kullanıcı etkileşimi / sohbet: **Hayır** · Konum paylaşımı: **Hayır** · Dijital satın alma: **Hayır** · Kumar: **Hayır**.
-* Beklenen sonuç ~PEGI 12 / ESRB Teen. Dürüst cevap ver; yanlış beyan uygulamanın kaldırılmasına yol açar.
+📋 LİSTELERİN TELEFONUNDA KALIR
+İzlenecekler ve izlediklerim. Üyelik yok, reklam yok, takip yok.
 
-### Hedef kitle ve içerik
-* Hedef yaş grupları: **13–15, 16–17, 18+** (13 yaş altı **seçme** → "Aileler" politikası ve ek şartlar devreye girer).
-* "Uygulama çocukların ilgisini çekebilir mi?" → **Hayır** (genel film/dizi rehberi).
+🌍 Türkçe, English, Deutsch, Français, Español, العربية · koyu ve açık tema.
 
-### Veri güvenliği (Data safety)
-Uygulama sunucuna veri göndermiyor; ancak arama terimleri ve IP adresi TMDB API'sine gidiyor. **Güvenli (muhafazakâr) cevap:**
+Film ve dizi verileri The Movie Database (TMDB) tarafından sağlanır. This product uses the TMDB API but is not endorsed or certified by TMDB. Platform verisi: JustWatch.
+```
 
-* Veri toplanıyor mu? **Evet**
-  * **Uygulama etkinliği → Uygulama içi arama geçmişi**: Toplanıyor · Paylaşılmıyor* · **Geçici olarak işleniyor (ephemeral): Evet** · Zorunlu · Amaç: **Uygulama işlevselliği**
-* Aktarım sırasında şifreleniyor mu? **Evet** (HTTPS)
-* Kullanıcı verilerin silinmesini isteyebilir mi? Veriler sunucuda tutulmuyor; cihazdaki veriler Ayarlar'dan silinebilir → "Evet / uygulama içinden" seçebilirsin.
-* Hesap oluşturma: **Yok**
+**Kategori:** Eğlence (Entertainment) · **Etiketler:** Film, Dizi, Öneriler
+**İletişim:** e‑posta adresin (zorunlu, mağazada görünür) · **Web sitesi:** isteğe bağlı
+**Gizlilik politikası:** https://erhancppur-oss.github.io/film-advisor/privacy-policy.html
 
-\* Kullanıcının kendi başlattığı arama ile istenen içeriğin üçüncü taraftan getirilmesi Google'ın "kullanıcı tarafından başlatılan aktarım" istisnasına girer. Emin değilsen "Paylaşılıyor (TMDB, uygulama işlevi)" olarak işaretlemek de kabul edilebilir; fazla beyan, eksik beyandan daha güvenlidir.
+### 4) Uygulama içeriği (sol menü → Politika → Uygulama içeriği)
 
-Cihazda tutulan izleme listesi/ayarlar "toplanan veri" **sayılmaz** (cihazdan çıkmıyor).
+| Bölüm | Cevap |
+|---|---|
+| Gizlilik politikası | Yukarıdaki URL |
+| Reklamlar | **Hayır, reklam içermiyor** |
+| Uygulama erişimi | **Tüm işlevler kısıtlama olmadan kullanılabilir** (giriş yok) |
+| İçerik derecelendirmesi | Anket: kategori **"Diğer tüm uygulama türleri"**. Şiddet/korku sorularında: uygulama film afişleri ve özetleri gösterdiği için **"hafif/ima eden"** seçenekleri. Kullanıcı etkileşimi: Hayır · Konum paylaşımı: Hayır · Dijital satın alma: Hayır · Kumar: Hayır. Beklenen sonuç ~PEGI 12 / Teen |
+| Hedef kitle | **13–15, 16–17, 18+** (13 yaş altını seçme) · Çocukların ilgisini çekebilir mi: **Hayır** |
+| Haber uygulaması | Hayır |
+| Sağlık / Finans / Devlet | Hayır |
+| Veri güvenliği | Aşağıdaki tablo |
 
-### Diğer beyanlar
-Haber uygulaması: Hayır · Sağlık: Hayır · Finans: Hayır · Devlet uygulaması: Hayır · COVID: Hayır.
+**Veri güvenliği formu:**
+- Veri topluyor veya paylaşıyor musunuz? → **Evet**
+  - **Uygulama etkinliği → Uygulama içi arama geçmişi**: Toplanıyor ✔ · Paylaşılmıyor · **Geçici olarak işleniyor (ephemeral): Evet** · **Zorunlu** · Amaç: **Uygulama işlevselliği**
+- Aktarımda şifreleniyor mu? → **Evet**
+- Kullanıcılar veri silinmesini isteyebilir mi? → **Evet** (veriler cihazda; Ayarlar'dan silinebilir)
+- Hesap oluşturma → **Yok**
 
-## 6. Yayın adımları (özet)
+(Neden: arama terimleri TMDB'ye gönderiliyor. Cihazda kalan listeler "toplanan veri" sayılmaz.)
 
-1. README'deki gibi TMDB anahtarı + GitHub Secrets ayarla, upload keystore oluştur.
-2. GitHub Actions'tan **imzalı** `app-release.aab` indir.
-3. Play Console → Uygulama oluştur (Ücretsiz) → Mağaza kaydı → Uygulama içeriği formları.
-4. **Play App Signing**'i kabul et (varsayılan). Upload anahtarını kaybetme (kaybedersen Play'den sıfırlama talep edilebilir).
-5. Kapalı test kanalına AAB yükle → 12+ test kullanıcısı → 14 gün.
-6. Üretim erişimi başvurusu → onay → Üretim sürümü oluştur → incelemeye gönder (genelde birkaç gün).
-7. Her güncellemede `pubspec.yaml` içindeki `version` adını artır (versionCode'u CI otomatik artırır).
+### 5) Kapalı test – ZORUNLU (yeni kişisel hesaplar)
+1. **Test → Kapalı test → Kanal oluştur** → `app-release.aab` yükle → sürüm notu: "İlk sürüm".
+2. **Test kullanıcıları**: e‑posta listesi oluştur, **en az 12 (öneri: 15–20)** Gmail adresi ekle.
+3. Katılım linkini paylaş; herkes linkten katılıp uygulamayı Play'den yüklesin.
+4. **14 gün kesintisiz** en az 12 kişi testte kalsın.
+5. 14 gün sonra **Kontrol paneli → Üretim erişimine başvur** formunu doldur (testte neler denendiği, geri bildirimler, yapılan düzeltmeler).
 
-## 7. Yayın öncesi kontrol listesi
+### 6) Üretim (yayın)
+Onay gelince **Üretim → Yeni sürüm oluştur** → aynı veya daha yeni `.aab` → Ülkeler: Tüm ülkeler (veya seçtiklerin) → **İncelemeye gönder**. İnceleme genelde 1–7 gün sürer.
 
-- [ ] `docs/privacy-policy.html` içindeki [DEVELOPER NAME] ve [CONTACT EMAIL] dolduruldu, GitHub Pages yayında
-- [ ] `PRIVACY_URL`, `CONTACT_EMAIL`, `APP_ID` GitHub değişkenleri girildi
-- [ ] `assets/tmdb_logo.png` resmi TMDB logosu eklendi
-- [ ] Uygulama kimliği (`APP_ID`) benzersiz, örn. `com.adsoyad.filmadvisor` — **yayından sonra değiştirilemez**
-- [ ] Release AAB upload keystore ile imzalı (CI'da "DEBUG key" uyarısı yok)
-- [ ] Gerçek cihazda: Türkçe/İngilizce, internet yokken hata ekranı, fragman/IMDb linkleri, kaydırma
-- [ ] Ekran görüntüleri telif açısından kontrol edildi
-- [ ] İçerik derecelendirmesi, hedef kitle, veri güvenliği, reklam formları dolduruldu
+> Play App Signing varsayılan olarak açık; ilk yüklemede onayla.
+
+---
+
+## C. Güncelleme yaparken
+1. Kodu değiştir → `main`'e gönder → derleme kendiliğinden çalışır (versionCode her derlemede otomatik artar).
+2. Görünen sürüm adı için `pubspec.yaml` içindeki `version:` satırını artır (ör. `1.2.2+1`).
+3. Releases'tan yeni `.aab` → Play Console → yeni sürüm.
+
+## D. Kurallara uygunluk özeti
+- Hedef API 36 (Android 16) ✔ · AAB ✔ · 16 KB sayfa boyutu ✔ · Sadece İnternet izni ✔
+- Reklam/analitik/takip yok ✔ · Hesap yok (hesap silme şartı yok) ✔ · Yetişkin içerik filtreli ✔
+- TMDB atfı ve JustWatch atfı uygulamada (Ayarlar → Hakkında) ✔
+- Müzik cihazda üretiliyor, telifli ses yok ✔
+- **TMDB notu:** API ticari olmayan kullanımda ücretsiz. Reklam veya ücretli özellik eklersen TMDB ticari lisansı gerekir.

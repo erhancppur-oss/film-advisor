@@ -14,9 +14,9 @@ jobs:
     timeout-minutes: 45
     env:
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-      PRIVACY_URL: ${{ vars.PRIVACY_URL }}
+      PRIVACY_URL: ${{ vars.PRIVACY_URL || 'https://erhancppur-oss.github.io/film-advisor/privacy-policy.html' }}
       CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
-      APP_ID: ${{ vars.APP_ID || 'com.filmadvisor.app' }}
+      APP_ID: ${{ vars.APP_ID || 'com.maximasoft.filmadvisor' }}
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -111,6 +111,13 @@ jobs:
             Test APK (install on Android: download -> open -> allow "install unknown apps").
             For Google Play upload use the .aab from the Actions artifacts (signed with your upload key).
           files: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Publish signed AAB to GitHub Releases (Google Play upload file)
+        if: env.KEYSTORE_BASE64 != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          files: build/app/outputs/bundle/release/app-release.aab
 
       - name: Clean secrets
         if: always()
