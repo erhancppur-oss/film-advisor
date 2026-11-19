@@ -9,6 +9,7 @@ import '../services/tmdb_api.dart';
 import '../state/advisor_prefs.dart';
 import '../state/library_state.dart';
 import '../state/settings_state.dart';
+import 'about_screen.dart';
 import 'detail_screen.dart' show openUrl;
 
 class SettingsScreen extends StatelessWidget {
@@ -130,7 +131,7 @@ class SettingsScreen extends StatelessWidget {
           leading: const Icon(Icons.info_outline_rounded),
           title: Text(s.t('about')),
           onTap: () => Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+              .push(AboutScreen.route()),
         ),
         ListTile(
           leading: const Icon(Icons.description_outlined),
@@ -245,108 +246,5 @@ class _RememberedPrefs extends StatelessWidget {
           ),
         ),
     ]);
-  }
-}
-
-class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    final cs = Theme.of(context).colorScheme;
-    final small = TextStyle(fontSize: 12, color: cs.outline, height: 1.4);
-    return Scaffold(
-      appBar: AppBar(title: Text(s.t('about'))),
-      body: ListView(padding: const EdgeInsets.fromLTRB(20, 12, 20, 24), children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Image.asset('assets/icon/icon.png',
-                width: 96,
-                height: 96,
-                errorBuilder: (_, __, ___) => const Icon(Icons.movie_filter_rounded, size: 96)),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(AppConfig.appName,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 4),
-        const Center(child: _VersionText()),
-        const SizedBox(height: 22),
-        // ---- developer credit (large)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF7C5CFF), Color(0xFFFF5CA8)]),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Text(
-            s.t('developed_by', {'dev': AppConfig.developer}),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              height: 1.25,
-            ),
-          ),
-        ),
-        const SizedBox(height: 22),
-        Text(s.t('about_body'), textAlign: TextAlign.center, style: small),
-        const SizedBox(height: 18),
-        // ---- TMDB attribution (required by TMDB API terms) – small
-        Center(
-          child: Image.asset(
-            'assets/tmdb_logo.png',
-            height: 22,
-            errorBuilder: (_, __, ___) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D253F),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text('TMDB',
-                  style: TextStyle(
-                      color: Color(0xFF01B4E4), fontWeight: FontWeight.w900, fontSize: 13)),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(s.t('tmdb_notice'), textAlign: TextAlign.center, style: small),
-        Text(s.t('tmdb_data'), textAlign: TextAlign.center, style: small),
-        Text(s.t('justwatch_notice'), textAlign: TextAlign.center, style: small),
-        const SizedBox(height: 4),
-        Wrap(alignment: WrapAlignment.center, children: [
-          TextButton(
-            onPressed: () => openUrl(context, 'https://www.themoviedb.org/'),
-            child: const Text('themoviedb.org', style: TextStyle(fontSize: 12)),
-          ),
-          TextButton(
-            onPressed: () => openUrl(context, 'https://www.justwatch.com/'),
-            child: const Text('justwatch.com', style: TextStyle(fontSize: 12)),
-          ),
-        ]),
-        if (AppConfig.contactEmail.isNotEmpty)
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.mail_outline_rounded, size: 20),
-            title: Text(s.t('contact'), style: const TextStyle(fontSize: 13)),
-            subtitle: Text(AppConfig.contactEmail, style: const TextStyle(fontSize: 12)),
-            onTap: () => openUrl(context, 'mailto:${AppConfig.contactEmail}'),
-          ),
-        if (AppConfig.hasPrivacyUrl)
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.privacy_tip_outlined, size: 20),
-            title: Text(s.t('privacy'), style: const TextStyle(fontSize: 13)),
-            onTap: () => openUrl(context, AppConfig.privacyPolicyUrl),
-          ),
-        const SizedBox(height: 8),
-        Text('© ${DateTime.now().year} ${AppConfig.developer}',
-            textAlign: TextAlign.center, style: small),
-      ]),
-    );
   }
 }

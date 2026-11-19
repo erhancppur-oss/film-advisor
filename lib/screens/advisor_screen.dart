@@ -13,7 +13,7 @@ import '../services/tmdb_api.dart';
 import '../state/advisor_prefs.dart';
 import '../state/library_state.dart';
 import '../widgets/common.dart';
-import '../widgets/music_button.dart';
+import '../widgets/cover_tile.dart';
 import 'results_screen.dart';
 
 // ============================================================== feeds
@@ -190,7 +190,6 @@ class AdvisorScreen extends StatelessWidget {
       if (matching.isNotEmpty) moods = matching.map((m) => m.key).toList();
     }
     final moodKey = moods[rnd.nextInt(moods.length)];
-    final mood = kMoods.firstWhere((m) => m.key == moodKey);
     final criteria = AdvisorCriteria(
       content: ContentChoice.any,
       moodKey: moodKey,
@@ -208,7 +207,7 @@ class AdvisorScreen extends StatelessWidget {
         musicTheme: themeForMood(moodKey),
         banner: s.t('pick_reason', {
           'when': s.t('when_$when'),
-          'mood': '${mood.emoji} ${s.t('mood_$moodKey')}',
+          'mood': s.t('mood_$moodKey'),
         }),
       ),
     );
@@ -247,20 +246,31 @@ class AdvisorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
+    final lib = context.read<LibraryState>();
+    final mine = [...lib.watchlist, ...lib.watched].where((m) => m.backdropPath != null).toList();
     final modes = <_Mode>[
-      _Mode('mode_pick', '🎲', const [Color(0xFF7C5CFF), Color(0xFFFF5CA8)], () => _pickForMe(context)),
-      _Mode('mode_profile', '👤', const [Color(0xFF11998E), Color(0xFF38EF7D)], () => _profile(context)),
-      _Mode('mode_manual', '🎛️', const [Color(0xFF4568DC), Color(0xFFB06AB3)],
+      _Mode('mode_pick', Icons.casino_outlined, (api) => backdropOf(api.trending(null)), () => _pickForMe(context)),
+      _Mode(
+          'mode_profile',
+          Icons.person_outline_rounded,
+          (api) async => mine.isNotEmpty ? mine.first.backdropPath : backdropOf(api.trending(null), pick: 3),
+          () => _profile(context),
+          keySuffix: mine.isNotEmpty ? mine.first.key : ''),
+      _Mode('mode_manual', Icons.tune_rounded,
+          discoverCover(MediaType.movie, const {'sort_by': 'vote_average.desc', 'vote_count.gte': '5000'}, pick: 2),
           () => _push(context, const ManualAdvisorScreen())),
-      _Mode('mode_similar', '🔁', const [Color(0xFFFF8008), Color(0xFFFFC837)],
+      _Mode('mode_similar', Icons.compare_arrows_rounded,
+          discoverCover(MediaType.movie, const {'sort_by': 'popularity.desc', 'vote_count.gte': '1000'}, pick: 4),
           () => _push(context, const SimilarAdvisorScreen())),
-      _Mode('mode_mood', '😊', const [Color(0xFFEB3349), Color(0xFFF45C43)],
+      _Mode('mode_mood', Icons.mood_rounded,
+          discoverCover(MediaType.movie, const {'with_genres': '35', 'sort_by': 'popularity.desc', 'vote_count.gte': '800'}),
           () => _push(context, const MoodAdvisorScreen())),
-      _Mode('mode_platform', '📺', const [Color(0xFF00B4DB), Color(0xFF0083B0)],
+      _Mode('mode_platform', Icons.live_tv_rounded,
+          discoverCover(MediaType.tv, const {'sort_by': 'popularity.desc', 'vote_count.gte': '300'}, pick: 1),
           () => _push(context, const PlatformAdvisorScreen())),
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(s.t('adv_hub_title')), actions: const [MusicButton()]),
+      appBar: AppBar(title: Text(s.t('adv_hub_title'))),
       body: LayoutBuilder(builder: (context, c) {
         final cols = c.maxWidth > 600 ? 3 : 2;
         return GridView.count(
@@ -268,8 +278,19 @@ class AdvisorScreen extends StatelessWidget {
           crossAxisCount: cols,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.92,
-          children: [for (final m in modes) _ModeCard(mode: m)],
+          childAspectRatio: 0.82,
+          children: [
+            for (final m in modes)
+              CoverTile(
+                coverKey: 'mode_${m.key}${m.keySuffix}',
+                loader: m.cover,
+                icon: m.icon,
+                title: s.t(m.key),
+                subtitle: s.t('${m.key}_d'),
+                radius: 20,
+                onTap: m.onTap,
+              ),
+          ],
         );
       }),
     );
@@ -278,62 +299,11 @@ class AdvisorScreen extends StatelessWidget {
 
 class _Mode {
   final String key;
-  final String emoji;
-  final List<Color> colors;
+  final IconData icon;
+  final CoverLoader cover;
   final VoidCallback onTap;
-  _Mode(this.key, this.emoji, this.colors, this.onTap);
-}
-
-class _ModeCard extends StatelessWidget {
-  const _ModeCard({required this.mode});
-  final _Mode mode;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return Material(
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: mode.onTap,
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: mode.colors,
-            ),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(mode.emoji, style: const TextStyle(fontSize: 28)),
-            ),
-            const Spacer(),
-            Text(
-              s.t(mode.key),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16, height: 1.1),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              s.t('${mode.key}_d'),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.2),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
+  final String keySuffix;
+  _Mode(this.key, this.icon, this.cover, this.onTap, {this.keySuffix = ''});
 }
 
 // ============================================================== shared widgets
@@ -362,48 +332,18 @@ class _ContentSelector extends StatelessWidget {
   }
 }
 
-class _MoodTile extends StatelessWidget {
-  const _MoodTile({
-    required this.emoji,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-  final String emoji;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: selected ? cs.primaryContainer : cs.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: selected ? cs.primary : Colors.transparent, width: 2),
-          ),
-          child: Row(children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
+const Map<String, IconData> _moodIcons = {
+  'laugh': Icons.sentiment_very_satisfied_rounded,
+  'feelgood': Icons.wb_sunny_outlined,
+  'thrill': Icons.visibility_outlined,
+  'scare': Icons.dark_mode_outlined,
+  'adrenaline': Icons.local_fire_department_outlined,
+  'mindbend': Icons.psychology_outlined,
+  'cry': Icons.water_drop_outlined,
+  'romance': Icons.favorite_border_rounded,
+  'escape': Icons.auto_awesome_outlined,
+  'learn': Icons.school_outlined,
+};
 
 Widget _moodGrid(BuildContext context, String? selected, ValueChanged<String> onTap) {
   final s = S.of(context);
@@ -413,14 +353,25 @@ Widget _moodGrid(BuildContext context, String? selected, ValueChanged<String> on
     physics: const NeverScrollableScrollPhysics(),
     mainAxisSpacing: 10,
     crossAxisSpacing: 10,
-    childAspectRatio: 2.3,
+    childAspectRatio: 1.55,
     children: [
-      for (final m in kMoods)
-        _MoodTile(
-          emoji: m.emoji,
-          label: s.t('mood_${m.key}'),
-          selected: selected == m.key,
-          onTap: () => onTap(m.key),
+      for (int i = 0; i < kMoods.length; i++)
+        CoverTile(
+          coverKey: 'mood_${kMoods[i].key}',
+          loader: discoverCover(
+            MediaType.movie,
+            {
+              'with_genres': kMoods[i].movieGenres.join('|'),
+              if (kMoods[i].movieExclude.isNotEmpty) 'without_genres': kMoods[i].movieExclude.join(','),
+              'sort_by': 'popularity.desc',
+              'vote_count.gte': '800',
+            },
+            pick: i,
+          ),
+          icon: _moodIcons[kMoods[i].key],
+          title: s.t('mood_${kMoods[i].key}'),
+          selected: selected == kMoods[i].key,
+          onTap: () => onTap(kMoods[i].key),
         ),
     ],
   );
@@ -444,10 +395,9 @@ class _MoodAdvisorScreenState extends State<MoodAdvisorScreen> {
       context.read<TmdbApi>(),
       AdvisorCriteria(content: _content, moodKey: moodKey, minRating: 6.5, fame: Fame.popular),
     );
-    final mood = kMoods.firstWhere((m) => m.key == moodKey);
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ResultsScreen(
-        title: '${mood.emoji} ${s.t('mood_$moodKey')}',
+        title: s.t('mood_$moodKey'),
         musicTheme: themeForMood(moodKey),
         loader: feed.load,
         isRelaxed: () => feed.relaxed,
@@ -1133,13 +1083,13 @@ class _ManualAdvisorScreenState extends State<ManualAdvisorScreen> {
   }
 
   Widget _qualityStep(S s) {
-    final emojis = {Fame.popular: '🔥', Fame.acclaimed: '🏆', Fame.hidden: '💎'};
+    const icons = {Fame.popular: Icons.trending_up_rounded, Fame.acclaimed: Icons.workspace_premium_outlined, Fame.hidden: Icons.diamond_outlined};
     return _stepScaffold('quality', s.t('q_quality'), children: [
       for (final f in Fame.values)
         _choiceTile(
           title: s.t('fame_${f.name}'),
           subtitle: s.t('fame_${f.name}_d'),
-          emoji: emojis[f],
+          icon: icons[f],
           selected: _c.fame == f,
           onTap: () => setState(() => _c.fame = f),
         ),
@@ -1160,7 +1110,7 @@ class _ManualAdvisorScreenState extends State<ManualAdvisorScreen> {
       ),
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        secondary: const Text('👨‍👩‍👧', style: TextStyle(fontSize: 24)),
+        secondary: const Icon(Icons.family_restroom_rounded),
         title: Text(s.t('q_kids')),
         subtitle: Text(s.t('q_kids_hint')),
         value: _c.withKids,

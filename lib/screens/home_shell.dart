@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/strings.dart';
-import '../music/music_service.dart';
 import '../state/settings_state.dart';
 import 'advisor_screen.dart';
 import 'discover_screen.dart';
@@ -18,35 +17,11 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  static const _advisorTab = 2;
-  Object? _musicToken;
-  late final MusicService _music = context.read<MusicService>();
-
-  /// Background music plays only while the Advisor tab is open.
-  void _syncMusic(int index) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (index == _advisorTab && _musicToken == null) {
-        _musicToken = _music.push('ambient');
-      } else if (index != _advisorTab && _musicToken != null) {
-        _music.pop(_musicToken!);
-        _musicToken = null;
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    if (_musicToken != null) _music.pop(_musicToken!);
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
     final st = context.watch<SettingsState>();
     final index = st.tabIndex;
-    _syncMusic(index);
     return Scaffold(
       body: IndexedStack(
         index: index,

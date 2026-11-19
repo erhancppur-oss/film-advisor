@@ -640,3 +640,51 @@ Future<List<MediaItem>> loadFilter(TmdbApi api, ListFilter f) async {
   }
   return api.collect((page) => api.discover(f.type, p, page: page), f.n);
 }
+
+// ---------------------------------------------------------------------- tile covers
+
+/// A backdrop image that represents a curated list.
+Future<String?> trendCover(TmdbApi api, TrendDef d) async {
+  Future<String?> first(List<MediaItem> items) async {
+    for (final m in items) {
+      if (m.backdropPath != null) return m.backdropPath;
+    }
+    return null;
+  }
+
+  switch (d.kind) {
+    case TrendKind.category:
+      return first((await api.category(d.type, d.query!)).items);
+    case TrendKind.discover:
+      return first((await api.discover(d.type, d.params)).items);
+    case TrendKind.keyword:
+      final id = await api.searchKeywordId(d.query!);
+      if (id == null) return null;
+      return first((await api.discover(d.type, {
+        'with_keywords': '$id',
+        'sort_by': 'popularity.desc',
+        'vote_count.gte': '300',
+      }))
+          .items);
+    case TrendKind.oscars:
+      final m = await api.findMovie(kOscarBestPicture[2].$1, kOscarBestPicture[2].$2);
+      return m?.backdropPath;
+    case TrendKind.person:
+    case TrendKind.director:
+      final p = await api.searchPerson(d.query!);
+      if (p == null) return null;
+      return first(await api.personTop((p['id'] as num).toInt(), d.type,
+          d.kind == TrendKind.director ? 'director' : 'cast', 5));
+  }
+}
+
+/// Discover params used for the cover of a genre / year / country / decade tile.
+Map<String, String> coverParams({int? genreMovieId, int? year, String? lang, int? decade}) => {
+      'sort_by': 'popularity.desc',
+      'vote_count.gte': lang != null && lang != 'en' ? '150' : '800',
+      if (genreMovieId != null) 'with_genres': '$genreMovieId',
+      if (year != null) 'primary_release_year': '$year',
+      if (lang != null) 'with_original_language': lang,
+      if (decade != null) 'primary_release_date.gte': '$decade-01-01',
+      if (decade != null) 'primary_release_date.lte': '${decade + 9}-12-31',
+    };

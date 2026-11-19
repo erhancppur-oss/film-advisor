@@ -49,7 +49,6 @@ class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
   @override
   void initState() {
     super.initState();
-    if (widget.musicTheme != null) startMusic(context.read<MusicService>(), widget.musicTheme!);
     _loadMore();
   }
 
@@ -91,6 +90,20 @@ class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
       ));
   }
 
+  bool _musicStarted = false;
+
+  /// Music follows the film that is currently on screen.
+  void _musicFor(MediaItem m) {
+    if (widget.musicTheme == null || !mounted) return;
+    final theme = themeForGenres(m.genreIds);
+    if (!_musicStarted) {
+      _musicStarted = true;
+      startMusic(context.read<MusicService>(), theme, seed: m.id);
+    } else {
+      changeMusicTheme(theme, seed: m.id);
+    }
+  }
+
   void _skip(MediaItem m) => context.read<LibraryState>().dislike(m);
 
   @override
@@ -129,7 +142,7 @@ class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
         onNearEnd: _loadMore,
         onTopChanged: widget.musicTheme == null
             ? null
-            : (m) => changeMusicTheme(themeForGenres(m.genreIds), seed: m.id),
+            : _musicFor,
         empty: _loading
             ? const Center(child: CircularProgressIndicator())
             : EmptyView(
@@ -145,6 +158,10 @@ class _ResultsScreenState extends State<ResultsScreen> with MusicTheme {
               ),
       );
     } else {
+      if (!_musicStarted && _items.isNotEmpty) {
+        final first = _items.first;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _musicFor(first));
+      }
       body = NotificationListener<ScrollNotification>(
         onNotification: (n) {
           if (n.metrics.pixels > n.metrics.maxScrollExtent - 500) _loadMore();

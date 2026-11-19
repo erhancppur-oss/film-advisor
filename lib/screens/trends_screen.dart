@@ -8,17 +8,7 @@ import '../models/media.dart';
 import '../models/trends.dart';
 import '../services/tmdb_api.dart';
 import '../widgets/common.dart';
-
-const _palettes = <List<Color>>[
-  [Color(0xFF7C5CFF), Color(0xFFFF5CA8)],
-  [Color(0xFF00B4DB), Color(0xFF0083B0)],
-  [Color(0xFFFF8008), Color(0xFFFFC837)],
-  [Color(0xFF11998E), Color(0xFF38EF7D)],
-  [Color(0xFFEB3349), Color(0xFFF45C43)],
-  [Color(0xFF4568DC), Color(0xFFB06AB3)],
-  [Color(0xFF232526), Color(0xFF606C88)],
-  [Color(0xFFDA4453), Color(0xFF89216B)],
-];
+import '../widgets/cover_tile.dart';
 
 void _openFilter(BuildContext context, ListFilter f) {
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankedListScreen.fromFilter(f)));
@@ -26,6 +16,41 @@ void _openFilter(BuildContext context, ListFilter f) {
 
 void _openDef(BuildContext context, TrendDef d) {
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => RankedListScreen.fromDef(d)));
+}
+
+/// Icon shown on curated list tiles.
+IconData _iconFor(TrendDef d) {
+  switch (d.kind) {
+    case TrendKind.oscars:
+      return Icons.emoji_events_outlined;
+    case TrendKind.keyword:
+      return Icons.local_offer_outlined;
+    case TrendKind.person:
+      return Icons.person_outline_rounded;
+    case TrendKind.director:
+      return Icons.videocam_outlined;
+    default:
+      return d.type == MediaType.tv ? Icons.live_tv_rounded : Icons.movie_outlined;
+  }
+}
+
+class _HRow extends StatelessWidget {
+  const _HRow({required this.height, required this.count, required this.builder});
+  final double height;
+  final int count;
+  final Widget Function(BuildContext, int) builder;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: height,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: count,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: builder,
+        ),
+      );
 }
 
 // ===================================================================== screen
@@ -39,6 +64,9 @@ class TrendsScreen extends StatelessWidget {
     final curated = buildTrendSections();
     TrendSection sec(String key) => curated.firstWhere((c) => c.titleKey == key);
     final year = DateTime.now().year;
+    final allTime = sec('sec_all_time').items;
+    final world = sec('sec_world').items;
+    final topics = sec('sec_topics').items;
 
     return Scaffold(
       appBar: AppBar(title: Text(s.t('trends_title'))),
@@ -46,216 +74,120 @@ class TrendsScreen extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 28),
         children: [
           const _ListBuilder(),
-          // ---- all time
+          // ---- all time (large cards)
           SectionHeader(s.t('sec_all_time')),
-          _CardRow(defs: sec('sec_all_time').items, palette: 0),
+          _HRow(
+            height: 150,
+            count: allTime.length,
+            builder: (_, i) => _CuratedTile(def: allTime[i], width: 240),
+          ),
           // ---- by year
           SectionHeader(s.t('sec_by_year')),
-          SizedBox(
-            height: 92,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: year - 1969,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final y = year - i;
-                return _GradientTile(
-                  width: 110,
-                  colors: _palettes[i % _palettes.length],
-                  onTap: () => _openFilter(context, ListFilter(year: y, n: 20)),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text('$y',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
-                    Text(s.t('top_n', {'n': '20'}),
-                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  ]),
-                );
-              },
-            ),
+          _HRow(
+            height: 96,
+            count: year - 1969,
+            builder: (_, i) {
+              final y = year - i;
+              return CoverTile(
+                coverKey: 'year_$y',
+                loader: discoverCover(MediaType.movie, coverParams(year: y)),
+                title: '$y',
+                subtitle: s.t('top_n', {'n': '20'}),
+                bigTitle: true,
+                centered: true,
+                width: 132,
+                onTap: () => _openFilter(context, ListFilter(year: y, n: 20)),
+              );
+            },
           ),
           // ---- by genre
           SectionHeader(s.t('sec_by_genre')),
-          SizedBox(
-            height: 104,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: kGenres.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final g = kGenres[i];
-                return _GradientTile(
-                  width: 104,
-                  colors: _palettes[(i + 3) % _palettes.length],
-                  onTap: () => _openFilter(context, ListFilter(genre: g.key)),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(kGenreEmoji[g.key] ?? '🎬', style: const TextStyle(fontSize: 34)),
-                    const SizedBox(height: 4),
-                    Text(s.t('genre_${g.key}'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                  ]),
-                );
-              },
-            ),
+          _HRow(
+            height: 120,
+            count: kGenres.length,
+            builder: (_, i) {
+              final g = kGenres[i];
+              return CoverTile(
+                coverKey: 'genre_${g.key}',
+                loader: discoverCover(MediaType.movie, coverParams(genreMovieId: g.movieId), pick: 1),
+                title: s.t('genre_${g.key}'),
+                subtitle: s.t('top_n', {'n': '10'}),
+                width: 150,
+                onTap: () => _openFilter(context, ListFilter(genre: g.key)),
+              );
+            },
           ),
-          // ---- actors
+          // ---- people
           SectionHeader(s.t('sec_popular_actors')),
           const _PopularActorsRow(),
           SectionHeader(s.t('sec_actors')),
           _PeopleRow(names: kLegendActors, director: false),
           SectionHeader(s.t('sec_turkish_stars')),
           _PeopleRow(names: kTurkishActors, director: false),
-          // ---- directors
           SectionHeader(s.t('sec_directors')),
           _PeopleRow(names: [...kDirectors, ...kTurkishDirectors], director: true),
           // ---- countries
           SectionHeader(s.t('sec_by_country')),
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: kCountries.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final c = kCountries[i];
-                return _GradientTile(
-                  width: 100,
-                  colors: _palettes[(i + 5) % _palettes.length],
-                  onTap: () => _openFilter(context, ListFilter(lang: c.lang, n: 20)),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(c.flag, style: const TextStyle(fontSize: 34)),
-                    const SizedBox(height: 4),
-                    Text(s.t('lang_${c.lang}'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                  ]),
-                );
-              },
-            ),
+          _HRow(
+            height: 110,
+            count: kCountries.length,
+            builder: (_, i) {
+              final c = kCountries[i];
+              return CoverTile(
+                coverKey: 'lang_${c.lang}',
+                loader: discoverCover(MediaType.movie, coverParams(lang: c.lang)),
+                title: s.t('lang_${c.lang}'),
+                subtitle: s.t('top_n', {'n': '20'}),
+                badge: c.flag,
+                width: 150,
+                onTap: () => _openFilter(context, ListFilter(lang: c.lang, n: 20)),
+              );
+            },
           ),
           // ---- decades
           SectionHeader(s.t('sec_decades')),
-          SizedBox(
-            height: 80,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 8,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final d = 2020 - i * 10;
-                return _GradientTile(
-                  width: 120,
-                  colors: _palettes[(i + 1) % _palettes.length],
-                  onTap: () => _openFilter(context, ListFilter(decade: d, n: 20)),
-                  child: Center(
-                    child: Text("${d}s",
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                  ),
-                );
-              },
-            ),
+          _HRow(
+            height: 96,
+            count: 8,
+            builder: (_, i) {
+              final d = 2020 - i * 10;
+              return CoverTile(
+                coverKey: 'decade_$d',
+                loader: discoverCover(MediaType.movie, coverParams(decade: d)),
+                title: "${d}s",
+                bigTitle: true,
+                centered: true,
+                width: 140,
+                onTap: () => _openFilter(context, ListFilter(decade: d, n: 20)),
+              );
+            },
           ),
           // ---- series & world
           SectionHeader(s.t('sec_world')),
-          _CardRow(defs: sec('sec_world').items, palette: 2),
+          _HRow(height: 130, count: world.length, builder: (_, i) => _CuratedTile(def: world[i], width: 200)),
           SectionHeader(s.t('sec_topics')),
-          _CardRow(defs: sec('sec_topics').items, palette: 4),
+          _HRow(height: 130, count: topics.length, builder: (_, i) => _CuratedTile(def: topics[i], width: 200)),
         ],
       ),
     );
   }
 }
 
-// ===================================================================== tiles
-
-class _GradientTile extends StatelessWidget {
-  const _GradientTile({required this.width, required this.colors, required this.onTap, required this.child});
+class _CuratedTile extends StatelessWidget {
+  const _CuratedTile({required this.def, required this.width});
+  final TrendDef def;
   final double width;
-  final List<Color> colors;
-  final VoidCallback onTap;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Material(
-        borderRadius: BorderRadius.circular(18),
-        clipBehavior: Clip.antiAlias,
-        elevation: 2,
-        child: InkWell(
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
-            ),
-            padding: const EdgeInsets.all(8),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CardRow extends StatelessWidget {
-  const _CardRow({required this.defs, required this.palette});
-  final List<TrendDef> defs;
-  final int palette;
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return SizedBox(
-      height: 112,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: defs.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (_, j) {
-          final d = defs[j];
-          return _GradientTile(
-            width: 168,
-            colors: _palettes[(palette + j) % _palettes.length],
-            onTap: () => _openDef(context, d),
-            child: Stack(children: [
-              Positioned(
-                right: -8,
-                bottom: -14,
-                child: Opacity(opacity: 0.3, child: Text(d.emoji, style: const TextStyle(fontSize: 60))),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(d.emoji, style: const TextStyle(fontSize: 22)),
-                  const Spacer(),
-                  Text(
-                    d.title(s),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5,
-                      height: 1.15,
-                      shadows: [Shadow(blurRadius: 4, color: Colors.black38)],
-                    ),
-                  ),
-                ]),
-              ),
-            ]),
-          );
-        },
-      ),
+    return CoverTile(
+      coverKey: 'def_${def.id}',
+      loader: (api) => trendCover(api, def),
+      title: def.title(s),
+      icon: _iconFor(def),
+      width: width,
+      onTap: () => _openDef(context, def),
     );
   }
 }
@@ -307,11 +239,7 @@ class _PersonAvatarState extends State<PersonAvatar> {
             padding: const EdgeInsets.all(2.5),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: widget.selected
-                    ? [cs.primary, cs.primary]
-                    : const [Color(0xFF7C5CFF), Color(0xFFFF5CA8)],
-              ),
+              color: widget.selected ? cs.primary : cs.outlineVariant,
             ),
             child: ClipOval(
               child: SizedBox(
@@ -445,12 +373,13 @@ class _ListBuilderState extends State<_ListBuilder> {
               crossAxisSpacing: 10,
               childAspectRatio: 1.15,
               children: [
-                _ChoiceTile(emoji: '✨', label: s.t('all'), selected: _f.genre == null, onTap: () => Navigator.pop(ctx, '')),
+                _ChoiceTile(icon: Icons.apps_rounded, label: s.t('all'), selected: _f.genre == null, onTap: () => Navigator.pop(ctx, '')),
                 for (final g in kGenres)
                   if (g.idFor(_f.type) != null)
-                    _ChoiceTile(
-                      emoji: kGenreEmoji[g.key] ?? '🎬',
-                      label: s.t('genre_${g.key}'),
+                    CoverTile(
+                      coverKey: 'genre_${g.key}',
+                      loader: discoverCover(MediaType.movie, coverParams(genreMovieId: g.movieId), pick: 1),
+                      title: s.t('genre_${g.key}'),
                       selected: _f.genre == g.key,
                       onTap: () => Navigator.pop(ctx, g.key),
                     ),
@@ -595,11 +524,13 @@ class _ListBuilderState extends State<_ListBuilder> {
               crossAxisSpacing: 10,
               childAspectRatio: 1.15,
               children: [
-                _ChoiceTile(emoji: '🌍', label: s.t('all'), selected: _f.lang == null, onTap: () => Navigator.pop(ctx, '')),
+                _ChoiceTile(icon: Icons.public_rounded, label: s.t('all'), selected: _f.lang == null, onTap: () => Navigator.pop(ctx, '')),
                 for (final c in kCountries)
-                  _ChoiceTile(
-                    emoji: c.flag,
-                    label: s.t('lang_${c.lang}'),
+                  CoverTile(
+                    coverKey: 'lang_${c.lang}',
+                    loader: discoverCover(MediaType.movie, coverParams(lang: c.lang)),
+                    title: s.t('lang_${c.lang}'),
+                    badge: c.flag,
                     selected: _f.lang == c.lang,
                     onTap: () => Navigator.pop(ctx, c.lang),
                   ),
@@ -645,16 +576,17 @@ class _ListBuilderState extends State<_ListBuilder> {
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [cs.primaryContainer, cs.surfaceContainerHigh],
-        ),
+        color: cs.surfaceContainerLow,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.6)),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('🎯', style: TextStyle(fontSize: 26)),
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.tune_rounded, color: cs.onPrimary, size: 22),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -680,7 +612,7 @@ class _ListBuilderState extends State<_ListBuilder> {
         Wrap(spacing: 8, runSpacing: 8, children: [
           _Pill(
             label: s.t('f_genre'),
-            value: _f.genre == null ? s.t('all') : '${kGenreEmoji[_f.genre] ?? ''} ${s.t('genre_${_f.genre}')}',
+            value: _f.genre == null ? s.t('all') : s.t('genre_${_f.genre}'),
             active: _f.genre != null,
             onTap: () => _pickGenre(s),
             onClear: () => setState(() => _f.genre = null),
@@ -813,8 +745,8 @@ class _Pill extends StatelessWidget {
 }
 
 class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({required this.emoji, required this.label, required this.selected, required this.onTap});
-  final String emoji;
+  const _ChoiceTile({required this.icon, required this.label, required this.selected, required this.onTap});
+  final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -831,18 +763,12 @@ class _ChoiceTile extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: selected ? cs.primary : Colors.transparent, width: 2),
+            border: Border.all(color: selected ? cs.primary : Colors.transparent, width: 3),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(emoji, style: const TextStyle(fontSize: 30)),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-            ),
+            Icon(icon, size: 30, color: selected ? cs.primary : cs.onSurface),
+            const SizedBox(height: 6),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
           ]),
         ),
       ),
@@ -932,7 +858,7 @@ class _RankedListScreenState extends State<RankedListScreen> {
                   if (hero == null)
                     const DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0xFF7C5CFF), Color(0xFFFF5CA8)]),
+                        gradient: LinearGradient(colors: [Color(0xFF2B2B2B), Color(0xFF111111)]),
                       ),
                     ),
                   DecoratedBox(

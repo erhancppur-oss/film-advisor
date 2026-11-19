@@ -10,21 +10,52 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'synth.dart';
 
-/// Picks a music theme from TMDB genre ids (movie or TV).
+/// Music theme for each TMDB genre id (movie and TV ids).
+const Map<int, String> kGenreMusic = {
+  28: 'action', // Action
+  12: 'epic', // Adventure
+  16: 'playful', // Animation
+  35: 'comedy', // Comedy
+  80: 'suspense', // Crime
+  99: 'documentary', // Documentary
+  18: 'drama', // Drama
+  10751: 'playful', // Family
+  14: 'epic', // Fantasy
+  36: 'epic', // History
+  27: 'horror', // Horror
+  10402: 'upbeat', // Music
+  9648: 'suspense', // Mystery
+  10749: 'romance', // Romance
+  878: 'scifi', // Science Fiction
+  10770: 'drama', // TV Movie
+  53: 'suspense', // Thriller
+  10752: 'epic', // War
+  37: 'western', // Western
+  10759: 'action', // TV: Action & Adventure
+  10762: 'playful', // TV: Kids
+  10763: 'documentary', // TV: News
+  10764: 'upbeat', // TV: Reality
+  10765: 'scifi', // TV: Sci-Fi & Fantasy
+  10766: 'drama', // TV: Soap
+  10767: 'upbeat', // TV: Talk
+  10768: 'epic', // TV: War & Politics
+};
+
+/// Picks a music theme from TMDB genre ids (ordered: TMDB lists the main genre first).
+///
+/// A few genres define the whole mood of a title and win wherever they appear:
+/// horror, animation/kids and documentary. Otherwise the main (first) genre decides.
 String themeForGenres(List<int> g) {
-  bool has(List<int> ids) => ids.any(g.contains);
-  if (has(const [27])) return 'horror';
-  if (has(const [35])) return 'comedy';
-  if (has(const [28, 10759])) return 'action';
-  if (has(const [878, 10765])) return 'scifi';
-  if (has(const [16, 10751, 10762])) return 'playful';
-  if (has(const [53, 80, 9648])) return 'suspense';
-  if (has(const [10752, 10768, 14, 12])) return 'epic';
-  if (has(const [10749])) return 'romance';
-  if (has(const [37])) return 'western';
-  if (has(const [10402])) return 'upbeat';
-  if (has(const [99, 36])) return 'documentary';
-  if (has(const [18])) return 'drama';
+  if (g.isEmpty) return 'ambient';
+  if (g.contains(27)) return 'horror';
+  if (g.contains(16) || g.contains(10762)) return 'playful';
+  if (g.contains(99)) return 'documentary';
+  // romantic comedies / dramas: romance is the mood when it is one of the first two genres
+  if (g.take(2).contains(10749)) return 'romance';
+  for (final id in g) {
+    final t = kGenreMusic[id];
+    if (t != null) return t;
+  }
   return 'ambient';
 }
 

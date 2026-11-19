@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:film_advisor/music/music_service.dart';
 import 'package:film_advisor/music/synth.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -33,5 +34,30 @@ void main() {
     }
     final wav = encodeWav(renderTrack('comedy', 3));
     expect(String.fromCharCodes(wav.sublist(0, 4)), 'RIFF');
+  });
+
+  test('genre to music mapping', () {
+    expect(themeForGenres([27, 53]), 'horror'); // horror thriller
+    expect(themeForGenres([35, 27]), 'horror'); // horror comedy
+    expect(themeForGenres([16, 35, 10751]), 'playful'); // animated comedy
+    expect(themeForGenres([28, 35]), 'action'); // action comedy
+    expect(themeForGenres([35, 28]), 'comedy'); // comedy first
+    expect(themeForGenres([35, 10749]), 'romance'); // rom-com
+    expect(themeForGenres([18, 10749]), 'romance');
+    expect(themeForGenres([18, 36]), 'drama'); // historical drama
+    expect(themeForGenres([36, 10752, 18]), 'epic');
+    expect(themeForGenres([12, 14, 10751]), 'epic'); // fantasy adventure (Harry Potter)
+    expect(themeForGenres([878, 28, 12]), 'scifi');
+    expect(themeForGenres([28, 878]), 'action');
+    expect(themeForGenres([80, 18]), 'suspense'); // crime drama
+    expect(themeForGenres([53]), 'suspense');
+    expect(themeForGenres([9648, 80]), 'suspense');
+    expect(themeForGenres([99]), 'documentary');
+    expect(themeForGenres([37]), 'western');
+    expect(themeForGenres([10402, 18]), 'upbeat');
+    expect(themeForGenres([10765, 10759]), 'scifi'); // TV sci-fi & fantasy
+    expect(themeForGenres([10759, 18]), 'action'); // TV action
+    expect(themeForGenres([10768]), 'epic');
+    expect(themeForGenres([]), 'ambient');
   });
 }
